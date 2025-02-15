@@ -22,7 +22,6 @@ type User struct {
 	ID    string `json:"id" bson:"_id,omitempty"`
 	Email string `json:"email" bson:"email"`
 	Name  string `json:"name" bson:"name"`
-	// Add additional fields as needed.
 }
 
 var (
@@ -46,8 +45,8 @@ func main() {
 	router := mux.NewRouter()
 
 	// Create Auth0 JWT middleware.
-	domain := os.Getenv("AUTH0_DOMAIN")     // e.g., "yourdomain.auth0.com"
-	audience := os.Getenv("AUTH0_AUDIENCE") // e.g., your API identifier
+	domain := os.Getenv("AUTH0_DOMAIN")
+	audience := os.Getenv("AUTH0_AUDIENCE")
 	issuer := "https://" + domain + "/"
 	jwksURI := issuer + ".well-known/jwks.json"
 
@@ -77,8 +76,8 @@ func main() {
 	api.HandleFunc("/profile", createProfileHandler).Methods("POST")
 
 	// Start the server.
-	log.Println("Authentication & User Management Service running on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Println("Authentication & User Management Service running on port 3001")
+	log.Fatal(http.ListenAndServe(":3001", router))
 }
 
 // getProfileHandler retrieves the user profile from MongoDB based on the Auth0 user ID.
