@@ -1,0 +1,30 @@
+# Ignore environment files (Secrets & API keys)
+.env
+
+# Ignore Go build artifacts
+/bin/
+/pkg/
+/build/
+*.exe
+*.out
+*.test
+
+# Ignore dependencies (Go modules)
+vendor/
+go.sum
+go.mod
+
+# Ignore temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Ignore IDE/editor config files
+.vscode/
+.idea/
+*.iml
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
