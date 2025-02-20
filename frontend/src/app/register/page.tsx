@@ -1,19 +1,59 @@
-import React from 'react';
-import Navbar from '../_components/NavBar';
+// src/app/register/page.tsx
+"use client";
+
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import Navbar from "../_components/NavBar";
 
 const Register: React.FC = () => {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+  });
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error || "Something went wrong");
+    } else {
+      // Redirect to login page after successful registration.
+      router.push("/login");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col">
       <Navbar />
       <div className="flex flex-1 items-center justify-center">
         <div className="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md">
-          <h2 className="text-3xl font-bold mb-6 text-center">Create Your ScrapeSmith Account</h2>
-          <form className="space-y-4">
+          <h2 className="text-3xl font-bold mb-6 text-center">
+            Create Your ScrapeSmith Account
+          </h2>
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
               <label className="block mb-1 text-white">Username</label>
               <input
                 type="text"
                 placeholder="Username"
+                value={formData.username}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
                 className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
@@ -22,6 +62,10 @@ const Register: React.FC = () => {
               <input
                 type="email"
                 placeholder="Email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
@@ -30,9 +74,14 @@ const Register: React.FC = () => {
               <input
                 type="password"
                 placeholder="Password"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
                 className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
+            {error && <p className="text-red-500">{error}</p>}
             <button
               type="submit"
               className="w-full py-3 bg-amber-600 hover:bg-amber-700 transition-colors duration-200 rounded-lg font-semibold text-white"
