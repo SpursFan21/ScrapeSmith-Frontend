@@ -26,12 +26,20 @@ const Navbar: React.FC = () => {
               Home
             </Link>
             {status === "loading" ? null : session ? (
-              <button
-                onClick={() => signOut()}
-                className="text-white hover:text-amber-400 cursor-pointer"
-              >
-                Logout
-              </button>
+              <>
+                <Link
+                  href="/account"
+                  className="text-white hover:text-amber-400 cursor-pointer"
+                >
+                  Account
+                </Link>
+                <button
+                  onClick={() => signOut()}
+                  className="text-white hover:text-amber-400 cursor-pointer"
+                >
+                  Logout
+                </button>
+              </>
             ) : (
               <>
                 <Link
