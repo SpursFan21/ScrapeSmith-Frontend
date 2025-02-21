@@ -34,11 +34,11 @@ const Navbar: React.FC = () => {
                   Account
                 </Link>
                 <button
-                  onClick={() => signOut()}
+                  onClick={() => signOut({ callbackUrl: "/" })}
                   className="text-white hover:text-amber-400 cursor-pointer"
                 >
                   Logout
-                </button>
+                </button>                
               </>
             ) : (
               <>
