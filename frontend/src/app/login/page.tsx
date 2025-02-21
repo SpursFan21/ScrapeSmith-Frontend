@@ -1,8 +1,9 @@
-// src/app/login/page.tsx
+// frontend\src\app\login\page.tsx
+
 "use client";
 
 import React, { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Navbar from "../_components/NavBar";
 
@@ -10,12 +11,13 @@ const Login: React.FC = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
+  const adminEmail = "admin@scrapesmith.com"; // Set your admin email
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    // Call NextAuth signIn with the credentials provider
+    // Call NextAuth signIn with credentials provider
     const res = await signIn("credentials", {
       username: formData.username,
       password: formData.password,
@@ -25,8 +27,15 @@ const Login: React.FC = () => {
     if (res?.error) {
       setError(res.error);
     } else {
-      // Redirect to home page on success
-      router.push("/");
+      // Wait briefly for the session to update
+      setTimeout(async () => {
+        const session = await getSession();
+        if (session?.user?.email === adminEmail) {
+          router.push("/admin");
+        } else {
+          router.push("/");
+        }
+      }, 1000);
     }
   };
 
@@ -43,7 +52,9 @@ const Login: React.FC = () => {
                 type="text"
                 placeholder="Enter your username"
                 value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
                 className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
@@ -53,7 +64,9 @@ const Login: React.FC = () => {
                 type="password"
                 placeholder="Enter your password"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
                 className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
