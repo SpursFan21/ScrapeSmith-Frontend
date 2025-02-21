@@ -5,9 +5,9 @@ import { db } from "@/server/db"; // Updated import path
 
 export async function POST(request: Request) {
   try {
-    const { username, email, password } = await request.json();
+    const { username, name, email, password } = await request.json();
 
-    if (!username || !email || !password) {
+    if (!username || !name || !email || !password) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
@@ -28,10 +28,11 @@ export async function POST(request: Request) {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create a new user record
+    // Create a new user record, including the 'name' field
     const user = await db.user.create({
       data: {
         username,
+        name,
         email,
         hashedPassword,
       },

@@ -9,8 +9,11 @@ const Register: React.FC = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
     username: "",
+    name: "",
     email: "",
+    confirmEmail: "",
     password: "",
+    confirmPassword: "",
   });
   const [error, setError] = useState("");
 
@@ -18,12 +21,28 @@ const Register: React.FC = () => {
     e.preventDefault();
     setError("");
 
+    // Validate emails match
+    if (formData.email !== formData.confirmEmail) {
+      setError("Emails do not match.");
+      return;
+    }
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    // Submit only the needed data to the server (exclude confirm fields)
     const res = await fetch("/api/auth/register", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: formData.username,
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      }),
     });
 
     const data = await res.json();
@@ -58,6 +77,18 @@ const Register: React.FC = () => {
               />
             </div>
             <div>
+              <label className="block mb-1 text-white">Full Name</label>
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+            <div>
               <label className="block mb-1 text-white">Email</label>
               <input
                 type="email"
@@ -70,6 +101,18 @@ const Register: React.FC = () => {
               />
             </div>
             <div>
+              <label className="block mb-1 text-white">Confirm Email</label>
+              <input
+                type="email"
+                placeholder="Confirm Email"
+                value={formData.confirmEmail}
+                onChange={(e) =>
+                  setFormData({ ...formData, confirmEmail: e.target.value })
+                }
+                className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+            <div>
               <label className="block mb-1 text-white">Password</label>
               <input
                 type="password"
@@ -77,6 +120,18 @@ const Register: React.FC = () => {
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
+                }
+                className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+            <div>
+              <label className="block mb-1 text-white">Confirm Password</label>
+              <input
+                type="password"
+                placeholder="Confirm Password"
+                value={formData.confirmPassword}
+                onChange={(e) =>
+                  setFormData({ ...formData, confirmPassword: e.target.value })
                 }
                 className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
