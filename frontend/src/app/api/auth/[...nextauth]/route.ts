@@ -15,26 +15,20 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // Explicitly cast credentials to the expected type
         const creds = credentials as { username: string; password: string };
         if (!creds.username || !creds.password) {
           throw new Error("Missing username or password");
         }
-        // Look up the user by username
+
         const user = await db.user.findUnique({
           where: { username: creds.username },
         });
-        if (!user) {
-          throw new Error("No user found with that username");
-        }
-        if (!user.hashedPassword) {
-          throw new Error("User has no password set");
-        }
-        // Validate the password
+        if (!user) throw new Error("No user found with that username");
+        if (!user.hashedPassword) throw new Error("User has no password set");
+
         const isValid = await bcrypt.compare(creds.password, user.hashedPassword);
-        if (!isValid) {
-          throw new Error("Invalid password");
-        }
+        if (!isValid) throw new Error("Invalid password");
+
         return user;
       },
     }),
@@ -44,12 +38,16 @@ const handler = NextAuth({
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.id = user.id;
+      if (user) {
+        token.id = user.id;
+        token.isAdmin = user.isAdmin;
+      }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
+        session.user.isAdmin = token.isAdmin as boolean;
       }
       return session;
     },

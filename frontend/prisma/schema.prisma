@@ -52,14 +52,17 @@ model Session {
 model User {
   id             String    @id @default(cuid())
   // Fields for local authentication (credentials)
-  username       String   @unique
-  hashedPassword String   // Stores the bcrypt hash of the password
+  username       String    @unique
+  hashedPassword String    // Stores the bcrypt hash of the password
 
   // NextAuth default fields
   name           String?
   email          String?   @unique
   emailVerified  DateTime?
   image          String?
+  
+  // Admin flag
+  isAdmin        Boolean   @default(false)
   
   accounts       Account[]
   sessions       Session[]

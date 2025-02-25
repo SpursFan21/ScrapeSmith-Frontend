@@ -27,7 +27,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+
+    /* TypeRoots for custom NextAuth types */
+    "typeRoots": ["./node_modules/@types", "./types"]
   },
   "include": [
     ".eslintrc.cjs",
@@ -36,7 +39,8 @@
     "**/*.tsx",
     "**/*.cjs",
     "**/*.js",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "types/**/*.d.ts"
   ],
   "exclude": ["node_modules"]
 }
