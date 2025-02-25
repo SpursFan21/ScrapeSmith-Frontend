@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/server/db";
 import bcrypt from "bcrypt";
-
-const prisma = new PrismaClient();
 
 async function main() {
   // Change this to your desired admin password
@@ -9,7 +7,7 @@ async function main() {
   const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
   // Create the admin user
-  const adminUser = await prisma.user.create({
+  const adminUser = await db.user.create({
     data: {
       username: "admin",
       email: "admin@scrapesmith.com",
@@ -28,5 +26,5 @@ main()
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await db.$disconnect();
   });

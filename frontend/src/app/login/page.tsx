@@ -11,13 +11,12 @@ const Login: React.FC = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
-  const adminEmail = "admin@scrapesmith.com"; // Set your admin email
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    // Call NextAuth signIn with credentials provider
+    // Call NextAuth signIn with the credentials provider
     const res = await signIn("credentials", {
       username: formData.username,
       password: formData.password,
@@ -30,7 +29,7 @@ const Login: React.FC = () => {
       // Wait briefly for the session to update
       setTimeout(async () => {
         const session = await getSession();
-        if (session?.user?.email === adminEmail) {
+        if (session?.user?.isAdmin) {
           router.push("/admin");
         } else {
           router.push("/");
@@ -85,3 +84,4 @@ const Login: React.FC = () => {
 };
 
 export default Login;
+

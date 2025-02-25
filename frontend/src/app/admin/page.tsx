@@ -1,5 +1,4 @@
-// frontend\src\app\admin\page.tsx
-
+// frontend/src/app/admin/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -22,13 +21,10 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  // Define your admin email (or use another method to verify admin status)
-  const adminEmail = "admin@scrapesmith.com";
-
   useEffect(() => {
     if (session) {
-      // If the logged-in user is not admin, redirect them away
-      if (session.user.email !== adminEmail) {
+      // Check admin status using isAdmin flag
+      if (!session.user.isAdmin) {
         router.push("/");
       } else {
         fetch("/api/admin/users")
@@ -43,7 +39,7 @@ const AdminDashboard: React.FC = () => {
           });
       }
     }
-  }, [session, router, adminEmail]);
+  }, [session, router]);
 
   const handleDelete = async (userId: string) => {
     if (confirm("Are you sure you want to delete this user?")) {
@@ -52,7 +48,6 @@ const AdminDashboard: React.FC = () => {
       });
       if (res.ok) {
         setMessage("User deleted successfully!");
-        // Remove the deleted user from the list
         setUsers(users.filter((user) => user.id !== userId));
       } else {
         const data = await res.json();
