@@ -9,8 +9,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
-  const adminEmail = "admin@example.com";
-  if (!session || session.user.email !== adminEmail) {
+  console.log("Admin DELETE session:", session); // Debug log
+  
+  // Check if the session exists and if the user is an admin
+  if (!session || !session.user.isAdmin) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
