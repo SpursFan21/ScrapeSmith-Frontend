@@ -57,7 +57,6 @@ const Register: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col">
-      <Navbar />
       <div className="flex flex-1 items-center justify-center">
         <div className="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md">
           <h2 className="text-3xl font-bold mb-6 text-center">

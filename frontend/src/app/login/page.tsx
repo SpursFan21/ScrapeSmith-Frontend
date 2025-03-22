@@ -1,49 +1,44 @@
+// app/login/page.tsx
 "use client";
-
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
+import { useDispatch } from "react-redux";
+import { setCredentials } from "../../redux/authSlice";
 import Navbar from "../_components/NavBar";
 
 const Login: React.FC = () => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
-  const [token, setToken] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    // Submit to your Kong routed backend API for login
-    const res = await fetch("http://localhost:8000/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      // Make API call to your backend via Kong
+      const response = await axios.post("http://localhost:8000/login", {
         email: formData.email,
         password: formData.password,
-      }),
-    });
+      });
 
-    const data = await res.json();
+      // Dispatch the token to Redux
+      dispatch(setCredentials(response.data.token));
 
-    if (!res.ok) {
-      setError(data.error || "Something went wrong");
-    } else {
-      // Store token as needed (e.g., in localStorage)
-      setToken(data.token);
       // Redirect to home page after successful login
       router.push("/");
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Something went wrong");
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col">
-      <Navbar />
       <div className="flex flex-1 items-center justify-center">
         <div className="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md">
-          <h2 className="text-3xl font-bold mb-6 text-center">
-            Login to ScrapeSmith
-          </h2>
+          <h2 className="text-3xl font-bold mb-6 text-center">Login to ScrapeSmith</h2>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
               <label className="block mb-1 text-white">Email</label>
@@ -79,12 +74,6 @@ const Login: React.FC = () => {
               Login
             </button>
           </form>
-          {token && (
-            <div className="mt-4 text-white">
-              <p>JWT Token:</p>
-              <pre className="bg-gray-800 p-2">{token}</pre>
-            </div>
-          )}
         </div>
       </div>
     </div>
