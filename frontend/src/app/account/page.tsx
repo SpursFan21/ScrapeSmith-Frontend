@@ -4,7 +4,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import Navbar from "../_components/NavBar";
 
 const AccountPage: React.FC = () => {
   const { data: session } = useSession();
@@ -58,7 +57,6 @@ const AccountPage: React.FC = () => {
 
   return (
     <>
-      <Navbar />
       <div className="max-w-4xl mx-auto mt-10 bg-white p-6 rounded shadow">
         <h2 className="text-2xl font-bold mb-4">My Account</h2>
         {message && <p className="text-red-500">{message}</p>}
