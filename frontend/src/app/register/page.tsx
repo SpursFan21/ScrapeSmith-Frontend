@@ -3,7 +3,6 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import Navbar from "../_components/NavBar";
 
 const Register: React.FC = () => {
   const router = useRouter();
@@ -34,7 +33,7 @@ const Register: React.FC = () => {
     }
 
     // Submit only the needed data to your Kong routed microservice
-    const res = await fetch("http://localhost:8000/signup", {
+    const res = await fetch("http://localhost:8000/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

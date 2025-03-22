@@ -1,11 +1,9 @@
-// app/login/page.tsx
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../../redux/authSlice";
-import Navbar from "../_components/NavBar";
+import api from "../api/axios"; // Import the custom api instance
 
 const Login: React.FC = () => {
   const router = useRouter();
@@ -18,14 +16,17 @@ const Login: React.FC = () => {
     setError("");
 
     try {
-      // Make API call to your backend via Kong
-      const response = await axios.post("http://localhost:8000/login", {
+      // Use the api instance to make the login request
+      const response = await api.post("/auth/login", {
         email: formData.email,
         password: formData.password,
       });
 
       // Dispatch the token to Redux
       dispatch(setCredentials(response.data.token));
+
+      // Log the Redux state to verify the token
+      console.log("Token stored in Redux:", response.data.token);
 
       // Redirect to home page after successful login
       router.push("/");
