@@ -33,8 +33,8 @@ const Register: React.FC = () => {
       return;
     }
 
-    // Submit only the needed data to the server (exclude confirm fields)
-    const res = await fetch("/api/auth/register", {
+    // Submit only the needed data to your Kong routed microservice
+    const res = await fetch("http://localhost:8000/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -184,3 +184,4 @@ const Register: React.FC = () => {
 };
 
 export default Register;
+

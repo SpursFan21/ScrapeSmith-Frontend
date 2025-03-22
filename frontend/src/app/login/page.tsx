@@ -1,40 +1,38 @@
-// frontend\src\app\login\page.tsx
-
 "use client";
 
 import React, { useState } from "react";
-import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Navbar from "../_components/NavBar";
 
 const Login: React.FC = () => {
   const router = useRouter();
-  const [formData, setFormData] = useState({ username: "", password: "" });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [token, setToken] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    // Call NextAuth signIn with the credentials provider
-    const res = await signIn("credentials", {
-      username: formData.username,
-      password: formData.password,
-      redirect: false,
+    // Submit to your Kong routed backend API for login
+    const res = await fetch("http://localhost:8000/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: formData.email,
+        password: formData.password,
+      }),
     });
 
-    if (res?.error) {
-      setError(res.error);
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error || "Something went wrong");
     } else {
-      // Wait briefly for the session to update
-      setTimeout(async () => {
-        const session = await getSession();
-        if (session?.user?.isAdmin) {
-          router.push("/admin");
-        } else {
-          router.push("/");
-        }
-      }, 1000);
+      // Store token as needed (e.g., in localStorage)
+      setToken(data.token);
+      // Redirect to home page after successful login
+      router.push("/");
     }
   };
 
@@ -43,18 +41,21 @@ const Login: React.FC = () => {
       <Navbar />
       <div className="flex flex-1 items-center justify-center">
         <div className="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md">
-          <h2 className="text-3xl font-bold mb-6 text-center">Login to ScrapeSmith</h2>
+          <h2 className="text-3xl font-bold mb-6 text-center">
+            Login to ScrapeSmith
+          </h2>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label className="block mb-1 text-white">Username</label>
+              <label className="block mb-1 text-white">Email</label>
               <input
-                type="text"
-                placeholder="Enter your username"
-                value={formData.username}
+                type="email"
+                placeholder="Enter your email"
+                value={formData.email}
                 onChange={(e) =>
-                  setFormData({ ...formData, username: e.target.value })
+                  setFormData({ ...formData, email: e.target.value })
                 }
                 className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                required
               />
             </div>
             <div>
@@ -67,6 +68,7 @@ const Login: React.FC = () => {
                   setFormData({ ...formData, password: e.target.value })
                 }
                 className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                required
               />
             </div>
             {error && <p className="text-red-500">{error}</p>}
@@ -77,6 +79,12 @@ const Login: React.FC = () => {
               Login
             </button>
           </form>
+          {token && (
+            <div className="mt-4 text-white">
+              <p>JWT Token:</p>
+              <pre className="bg-gray-800 p-2">{token}</pre>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -84,4 +92,3 @@ const Login: React.FC = () => {
 };
 
 export default Login;
-
