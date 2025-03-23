@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../../redux/authSlice";
-import api from "../api/axios"; // Import the custom api instance
+import api from "../api/axios";
 
 const Login: React.FC = () => {
   const router = useRouter();
