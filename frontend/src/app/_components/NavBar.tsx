@@ -28,6 +28,9 @@ const Navbar: React.FC = () => {
           </Link>
           {token ? (
             <>
+              <Link href="/dashboard" className="text-white hover:text-amber-400">
+                Dashboard
+              </Link>
               <Link href="/account" className="text-white hover:text-amber-400">
                 Account
               </Link>
