@@ -1,17 +1,31 @@
+// frontend\src\app\_components\NavBar.tsx
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../redux/store";
 import { clearCredentials } from "../../redux/authSlice";
 import { useRouter } from "next/navigation";
+import api from "../api/axios";
 
 const Navbar: React.FC = () => {
   const router = useRouter();
   const dispatch = useDispatch();
-  const token = useSelector((state: RootState) => state.auth.token);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Local state to track login status
+  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
 
-  const handleLogout = () => {
+  useEffect(() => {
+    setIsLoggedIn(!!accessToken); // Update login status when accessToken changes
+  }, [accessToken]);
+
+  const handleLogout = async () => {
+    try {
+      // Call logout endpoint to invalidate the session on the server
+      await api.post("/auth/logout");
+    } catch (err) {
+      console.error("Error during logout:", err);
+    }
+
     dispatch(clearCredentials());
     router.push("/login");
   };
@@ -26,7 +40,7 @@ const Navbar: React.FC = () => {
           <Link href="/" className="text-white hover:text-amber-400">
             Home
           </Link>
-          {token ? (
+          {isLoggedIn ? (
             <>
               <Link href="/dashboard" className="text-white hover:text-amber-400">
                 Dashboard

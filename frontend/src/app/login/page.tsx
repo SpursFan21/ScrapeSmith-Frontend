@@ -1,3 +1,4 @@
+// frontend\src\app\login\page.tsx
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -14,24 +15,37 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-
+  
     try {
-      // Use the api instance to make the login request
       const response = await api.post("/auth/login", {
         email: formData.email,
         password: formData.password,
       });
-
-      // Dispatch the token to Redux
-      dispatch(setCredentials(response.data.token));
-
-      // Log the Redux state to verify the token
-      console.log("Token stored in Redux:", response.data.token);
-
-      // Redirect to home page after successful login
-      router.push("/");
+  
+      // Check if the response contains tokens
+      const accessToken = response.data.access_token;
+      const refreshToken = response.data.refresh_token;
+  
+      if (!accessToken || !refreshToken) {
+        setError("Login failed. Please check your credentials.");
+        return;
+      }
+  
+      // Log the response and tokens to make sure they're coming through
+      console.log("Login response data:", response.data);
+      console.log("Extracted tokens:", accessToken, refreshToken);
+  
+      // Dispatch the credentials to Redux
+      dispatch(setCredentials({ accessToken, refreshToken }));
+  
+      console.log("Token stored in Redux:", accessToken, refreshToken);
+  
+      // Redirect to dashboard
+      router.push("/dashboard");
     } catch (err: any) {
-      setError(err.response?.data?.error || "Something went wrong");
+      // Handle login errors correctly
+      setError(err.response?.data?.error || "Invalid credentials. Please try again.");
+      console.error("Login error:", err);
     }
   };
 
@@ -47,10 +61,8 @@ const Login: React.FC = () => {
                 type="email"
                 placeholder="Enter your email"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none"
                 required
               />
             </div>
@@ -60,10 +72,8 @@ const Login: React.FC = () => {
                 type="password"
                 placeholder="Enter your password"
                 value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none"
                 required
               />
             </div>

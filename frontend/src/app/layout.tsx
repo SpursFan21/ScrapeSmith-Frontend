@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${roboto.className} min-h-screen flex flex-col bg-metal text-white`}>
         <Providers>
-          <Navbar />
+          <Navbar /> {/* Keep Navbar as a client component */}
           <main className="flex-grow">{children}</main>
           <Footer />
         </Providers>

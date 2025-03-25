@@ -1,11 +1,10 @@
 // frontend\src\app\account\page.tsx
-
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
-import { jwtDecode } from "jwt-decode";
+import jwt_decode from "jwt-decode";
 import ProtectedRoute from "../_components/ProtectedRoute";
 import api from "../api/axios";
 
@@ -14,28 +13,28 @@ interface UserData {
   email: string;
   username: string;
   image: string;
-  password?: string; // Add password field (optional)
+  password?: string;
 }
 
 interface DecodedToken {
-  sub: string; // User ID
+  sub: string;
 }
 
 const AccountPage: React.FC = () => {
-  const token = useSelector((state: RootState) => state.auth.token); // Get the token from Redux store
+  const accessToken = useSelector((state: RootState) => state.auth.accessToken); // Updated to use accessToken
   const [userData, setUserData] = useState<UserData>({
     name: "",
     email: "",
     username: "",
     image: "",
-    password: "", // Initialize password field
+    password: "",
   });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
+  const [showPassword, setShowPassword] = useState(false);
 
   // Decode the JWT token to get the user ID
-  const decodedToken = token ? jwtDecode<DecodedToken>(token) : null; // Use jwtDecode as a function
+  const decodedToken = accessToken ? jwt_decode<DecodedToken>(accessToken) : null;
   const userId = decodedToken?.sub;
 
   useEffect(() => {
@@ -45,15 +44,15 @@ const AccountPage: React.FC = () => {
         .get(`/users/users/${userId}`)
         .then((response) => {
           const data = response.data;
-          console.log("Fetched user data:", data); // Log the fetched data
+          console.log("Fetched user data:", data);
           setUserData({
             name: data.name ?? "",
             email: data.email ?? "",
             username: data.username ?? "",
             image: data.image ?? "",
-            password: "********", // Simulate a masked password
+            password: "********",
           });
-          console.log("Updated userData state:", { // Log the updated state
+          console.log("Updated userData state:", {
             name: data.name ?? "",
             email: data.email ?? "",
             username: data.username ?? "",
@@ -89,19 +88,18 @@ const AccountPage: React.FC = () => {
         <h2 className="text-2xl font-bold mb-4 text-gray-800">My Account</h2>
         {message && <p className="text-red-500">{message}</p>}
 
-        {/* Welcome Section */}
         <div className="mb-8">
-          <h3 className="text-xl font-semibold mb-4 text-gray-800">Welcome, {userData.username}!</h3>
+          <h3 className="text-xl font-semibold mb-4 text-gray-800">
+            Welcome, {userData.username}!
+          </h3>
           <div className="flex items-center space-x-4">
-            {/* Profile Image */}
             <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-amber-500">
               <img
-                src={userData.image || "https://via.placeholder.com/150"} // Fallback image if no profile image is set
+                src={userData.image || "https://via.placeholder.com/150"}
                 alt="Profile"
                 className="w-full h-full object-cover"
               />
             </div>
-            {/* User Details */}
             <div className="space-y-2 text-gray-700">
               <p>
                 <span className="font-medium">Name:</span> {userData.name || "Not set"}
@@ -127,7 +125,6 @@ const AccountPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Update Account Details Form */}
         <form onSubmit={handleUpdate} className="space-y-4">
           <div>
             <label className="block mb-1 font-medium text-gray-700">Name:</label>
