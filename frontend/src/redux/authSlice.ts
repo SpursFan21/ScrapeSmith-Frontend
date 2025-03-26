@@ -46,12 +46,16 @@ const authSlice = createSlice({
       // Save tokens to localStorage
       setLocalStorageItem("accessToken", action.payload.accessToken);
       setLocalStorageItem("refreshToken", action.payload.refreshToken);
+
+      console.log("Tokens saved to localStorage:", action.payload.accessToken, action.payload.refreshToken);
     },
     updateAccessToken: (state, action: PayloadAction<string>) => {
       state.accessToken = action.payload;
 
       // Update in localStorage
       setLocalStorageItem("accessToken", action.payload);
+
+      console.log("Access token updated in localStorage:", action.payload);
     },
     clearCredentials: (state) => {
       state.accessToken = null;
@@ -60,9 +64,12 @@ const authSlice = createSlice({
       // Clear from localStorage
       removeLocalStorageItem("accessToken");
       removeLocalStorageItem("refreshToken");
+
+      console.log("Cleared tokens from localStorage");
     },
   },
 });
+
 
 export const { setCredentials, updateAccessToken, clearCredentials } = authSlice.actions;
 export default authSlice.reducer;

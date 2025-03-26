@@ -22,6 +22,10 @@ async function refreshAccessToken() {
 
     const newAccessToken = response.data.access_token;
 
+    if (!newAccessToken) {
+      throw new Error("No access token returned from refresh");
+    }
+
     // Update the access token in Redux
     store.dispatch(updateAccessToken(newAccessToken));
 
@@ -63,22 +67,21 @@ api.interceptors.request.use(
   }
 );
 
-// Axios response interceptor to handle 401 and refresh token
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // If 401 Unauthorized, try to refresh the token
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       console.warn("Received 401, attempting to refresh token...");
+
       const newToken = await refreshAccessToken();
-      
+
       if (newToken) {
         console.log("Retrying original request with new token...");
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return api(originalRequest); // Retry the original request
+        return api(originalRequest);
       } else {
         console.warn("Token refresh failed, clearing credentials");
         store.dispatch(clearCredentials());
