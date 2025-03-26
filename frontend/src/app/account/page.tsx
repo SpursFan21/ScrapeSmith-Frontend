@@ -13,7 +13,6 @@ interface UserData {
   email: string;
   username: string;
   image: string;
-  password?: string;
 }
 
 interface DecodedToken {
@@ -21,17 +20,18 @@ interface DecodedToken {
 }
 
 const AccountPage: React.FC = () => {
-  const accessToken = useSelector((state: RootState) => state.auth.accessToken); // Updated to use accessToken
+  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   const [userData, setUserData] = useState<UserData>({
     name: "",
     email: "",
     username: "",
     image: "",
-    password: "",
   });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
 
   // Decode the JWT token to get the user ID
   const decodedToken = accessToken ? jwt_decode<DecodedToken>(accessToken) : null;
@@ -39,9 +39,8 @@ const AccountPage: React.FC = () => {
 
   useEffect(() => {
     if (userId) {
-      // Fetch user data from your user-service using the api instance
       api
-        .get(`/users/users/${userId}`)
+        .get(`/users/${userId}`)
         .then((response) => {
           const data = response.data;
           console.log("Fetched user data:", data);
@@ -50,14 +49,6 @@ const AccountPage: React.FC = () => {
             email: data.email ?? "",
             username: data.username ?? "",
             image: data.image ?? "",
-            password: "********",
-          });
-          console.log("Updated userData state:", {
-            name: data.name ?? "",
-            email: data.email ?? "",
-            username: data.username ?? "",
-            image: data.image ?? "",
-            password: "********",
           });
           setLoading(false);
         })
@@ -73,10 +64,27 @@ const AccountPage: React.FC = () => {
     if (!userId) return;
 
     try {
-      const response = await api.put(`/users/users/${userId}`, userData);
+      await api.put(`/users/${userId}`, userData);
       setMessage("Profile updated successfully!");
     } catch (error: any) {
       setMessage(error.response?.data?.message || "Failed to update profile.");
+    }
+  };
+
+  const handlePasswordUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!userId) return;
+
+    try {
+      await api.put(`/users/${userId}/password`, {
+        old_password: oldPassword,
+        new_password: newPassword,
+      });
+      setPasswordMessage("Password updated successfully!");
+      setOldPassword("");
+      setNewPassword("");
+    } catch (error: any) {
+      setPasswordMessage(error.response?.data?.message || "Failed to update password.");
     }
   };
 
@@ -86,7 +94,8 @@ const AccountPage: React.FC = () => {
     <ProtectedRoute>
       <div className="max-w-4xl mx-auto mt-10 bg-gray-50 p-6 rounded shadow">
         <h2 className="text-2xl font-bold mb-4 text-gray-800">My Account</h2>
-        {message && <p className="text-red-500">{message}</p>}
+        {message && <p className="text-green-500">{message}</p>}
+        {passwordMessage && <p className="text-red-500">{passwordMessage}</p>}
 
         <div className="mb-8">
           <h3 className="text-xl font-semibold mb-4 text-gray-800">
@@ -101,31 +110,16 @@ const AccountPage: React.FC = () => {
               />
             </div>
             <div className="space-y-2 text-gray-700">
-              <p>
-                <span className="font-medium">Name:</span> {userData.name || "Not set"}
-              </p>
-              <p>
-                <span className="font-medium">Email:</span> {userData.email}
-              </p>
-              <p>
-                <span className="font-medium">Username:</span> {userData.username}
-              </p>
-              <p>
-                <span className="font-medium">Password:</span>{" "}
-                {showPassword ? userData.password : "••••••••"}{" "}
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-amber-500 hover:text-amber-600"
-                >
-                  {showPassword ? "Hide" : "Show"}
-                </button>
-              </p>
+              <p><span className="font-medium">Name:</span> {userData.name || "Not set"}</p>
+              <p><span className="font-medium">Email:</span> {userData.email}</p>
+              <p><span className="font-medium">Username:</span> {userData.username}</p>
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleUpdate} className="space-y-4">
+        {/* Update Profile Form */}
+        <form onSubmit={handleUpdate} className="space-y-4 mb-8">
+          <h3 className="text-xl font-semibold mb-2 text-gray-800">Update Profile</h3>
           <div>
             <label className="block mb-1 font-medium text-gray-700">Name:</label>
             <input
@@ -166,11 +160,36 @@ const AccountPage: React.FC = () => {
               placeholder="Enter your profile image URL"
             />
           </div>
-          <button
-            type="submit"
-            className="bg-amber-500 hover:bg-amber-600 text-white py-2 px-4 rounded"
-          >
+          <button type="submit" className="bg-amber-500 hover:bg-amber-600 text-white py-2 px-4 rounded">
             Update Account
+          </button>
+        </form>
+
+        {/* Update Password Form */}
+        <form onSubmit={handlePasswordUpdate} className="space-y-4">
+          <h3 className="text-xl font-semibold mb-2 text-gray-800">Change Password</h3>
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">Old Password:</label>
+            <input
+              className="border p-2 w-full rounded bg-white text-gray-700"
+              type="password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              placeholder="Enter your old password"
+            />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">New Password:</label>
+            <input
+              className="border p-2 w-full rounded bg-white text-gray-700"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter your new password"
+            />
+          </div>
+          <button type="submit" className="bg-amber-500 hover:bg-amber-600 text-white py-2 px-4 rounded">
+            Change Password
           </button>
         </form>
       </div>
