@@ -37,13 +37,13 @@ const SingleScrapePage: React.FC = () => {
       alert("Please provide a URL and select an analysis type.");
       return;
     }
-
+  
     // Save the selected data to sessionStorage for the payment page
     sessionStorage.setItem("scrapeUrl", url);
     sessionStorage.setItem("analysisType", selectedAnalysis);
-
+  
     // Redirect to the payment page
-    router.push("/dashboard/payment");
+    router.push("/dashboard/single-scrape/payment");
   };
 
   return (
