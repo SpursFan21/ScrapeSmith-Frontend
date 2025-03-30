@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { Transition } from '@headlessui/react';
 import Lottie from 'lottie-react';
 import animationData from '../../public/lottie-ai-animation.json';
-import Particles from 'react-tsparticles';
-import { loadFull } from 'tsparticles';
 
 const taglines = [
   'Automated Web Scraping',
@@ -21,53 +19,15 @@ const Home: React.FC = () => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true); // Trigger client-only rendering for Lottie & Particles
+    setMounted(true);
     const interval = setInterval(() => {
       setCurrentTagline((prev) => (prev + 1) % taglines.length);
     }, 3500);
     return () => clearInterval(interval);
   }, []);
 
-  const particlesInit = async (main: any) => {
-    await loadFull(main);
-  };
-
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white overflow-hidden">
-      {/* 🌌 Particles (client only) */}
-      {mounted && (
-        <Particles
-          id="tsparticles"
-          init={particlesInit}
-          options={{
-            fullScreen: { enable: false },
-            background: { color: { value: 'transparent' } },
-            particles: {
-              number: { value: 60, density: { enable: true, area: 800 } },
-              color: { value: '#fbbf24' },
-              shape: { type: 'circle' },
-              opacity: { value: 0.2 },
-              size: { value: 4, random: true },
-              move: {
-                enable: true,
-                speed: 1,
-                direction: 'none',
-                outModes: { default: 'bounce' },
-              },
-            },
-            interactivity: {
-              events: {
-                onHover: { enable: true, mode: 'repulse' },
-                resize: true,
-              },
-              modes: { repulse: { distance: 100, duration: 0.4 } },
-            },
-            detectRetina: true,
-          }}
-          className="absolute inset-0 z-0"
-        />
-      )}
-
       <main className="relative z-10 flex flex-col items-center justify-center text-center py-20 px-6">
 
         {/* 🤖 Lottie Animation */}
@@ -77,7 +37,7 @@ const Home: React.FC = () => {
           </div>
         )}
 
-        {/* 🧊 Glassy Banner */}
+        {/* 🧊 Glass Banner */}
         <div className="bg-white bg-opacity-10 backdrop-blur-lg p-10 rounded-3xl shadow-2xl max-w-2xl w-full border border-gray-600">
           <h1 className="text-5xl sm:text-6xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-yellow-500">
             Welcome to ScrapeSmith
@@ -130,10 +90,10 @@ const Home: React.FC = () => {
         <div className="mt-12 max-w-3xl text-gray-400 text-sm sm:text-base leading-relaxed">
           <p className="mb-3">
             ScrapeSmith is your one-stop platform for automated data extraction, intelligent cleaning, and AI-powered analysis.
-            Built on a scalable microservice architecture, it's designed for developers, researchers, and data-driven businesses.
+            Built on a scalable microservice architecture, it’s designed for developers, researchers, and data-driven businesses.
           </p>
           <p>
-            Whether you're monitoring competitors, gathering market trends, or building custom datasets — ScrapeSmith helps you
+            Whether you’re monitoring competitors, gathering market trends, or building custom datasets — ScrapeSmith helps you
             turn the messy web into structured, actionable data.
           </p>
         </div>
