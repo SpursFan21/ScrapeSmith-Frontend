@@ -30,14 +30,14 @@ const Home: React.FC = () => {
     <div className="relative min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white overflow-hidden">
       <main className="relative z-10 flex flex-col items-center justify-center text-center py-20 px-6">
 
-        {/* 🤖 Lottie Animation */}
+        {/* Lottie Animation */}
         {mounted && (
           <div className="mb-10">
             <Lottie animationData={animationData} loop className="w-56 h-56 mx-auto" />
           </div>
         )}
 
-        {/* 🧊 Glass Banner */}
+        {/* Glass Banner */}
         <div className="bg-white bg-opacity-10 backdrop-blur-lg p-10 rounded-3xl shadow-2xl max-w-2xl w-full border border-gray-600">
           <h1 className="text-5xl sm:text-6xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-yellow-500">
             Welcome to ScrapeSmith
@@ -86,7 +86,7 @@ const Home: React.FC = () => {
           </div>
         </div>
 
-        {/* 📚 Description */}
+        {/* Description */}
         <div className="mt-12 max-w-3xl text-gray-400 text-sm sm:text-base leading-relaxed">
           <p className="mb-3">
             ScrapeSmith is your one-stop platform for automated data extraction, intelligent cleaning, and AI-powered analysis.
