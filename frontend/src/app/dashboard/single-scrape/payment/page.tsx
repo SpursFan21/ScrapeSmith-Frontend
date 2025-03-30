@@ -38,7 +38,7 @@ const PaymentForm: React.FC = () => {
   const elements = useElements();
   const [message, setMessage] = useState<string | null>(null);
   const [product, setProduct] = useState<ProductDetails | null>(null);
-  const productId = "prod_S1CgJQ8HARLgRN"; // Your actual product ID
+  const productId = "prod_S1CgJQ8HARLgRN"; // ID for 1 Job
 
   useEffect(() => {
     axios
