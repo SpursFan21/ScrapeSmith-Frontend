@@ -19,33 +19,37 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-
+  
     try {
       const response = await api.post("/auth/login", {
         email: formData.email,
         password: formData.password,
       });
-
-      const accessToken = response.data.access_token;
-      const refreshToken = response.data.refresh_token;
-
-      if (!accessToken || !refreshToken) {
+  
+      const { access_token, refresh_token, is_admin } = response.data;
+  
+      if (!access_token || !refresh_token) {
         setError("Login failed. Please check your credentials.");
         return;
       }
-
-      console.log("Login response data:", response.data);
-      console.log("Extracted tokens:", accessToken, refreshToken);
-
-      dispatch(setCredentials({ accessToken, refreshToken }));
-      console.log("Token stored in Redux:", accessToken, refreshToken);
-
-      router.push("/dashboard");
+  
+      const accessToken = access_token;
+      const refreshToken = refresh_token;
+      const isAdmin = Boolean(is_admin);
+  
+      dispatch(setCredentials({ accessToken, refreshToken, isAdmin }));
+  
+      if (isAdmin) {
+        router.push("/admin-dashboard");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || "Invalid credentials. Please try again.");
       console.error("Login error:", err);
     }
   };
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center relative overflow-hidden">

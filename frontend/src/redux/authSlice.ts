@@ -1,7 +1,8 @@
 // redux/authSlice.ts
+// redux/authSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-// Utility function to safely access localStorage on the client side
+// Utility functions for localStorage
 const getLocalStorageItem = (key: string) => {
   if (typeof window !== "undefined") {
     return localStorage.getItem(key);
@@ -21,55 +22,57 @@ const removeLocalStorageItem = (key: string) => {
   }
 };
 
-// Load saved tokens from localStorage if available
+// Load saved tokens and admin flag from localStorage
 const savedAccessToken = getLocalStorageItem("accessToken");
 const savedRefreshToken = getLocalStorageItem("refreshToken");
+const savedIsAdmin = getLocalStorageItem("isAdmin") === "true"; // stored as string
 
 interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
+  isAdmin: boolean;
 }
 
 const initialState: AuthState = {
   accessToken: savedAccessToken,
   refreshToken: savedRefreshToken,
+  isAdmin: savedIsAdmin,
 };
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setCredentials: (state, action: PayloadAction<{ accessToken: string; refreshToken: string }>) => {
+    setCredentials: (state, action: PayloadAction<{ accessToken: string; refreshToken: string; isAdmin: boolean }>) => {
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
+      state.isAdmin = action.payload.isAdmin;
 
-      // Save tokens to localStorage
       setLocalStorageItem("accessToken", action.payload.accessToken);
       setLocalStorageItem("refreshToken", action.payload.refreshToken);
+      setLocalStorageItem("isAdmin", action.payload.isAdmin.toString());
 
       console.log("Tokens saved to localStorage:", action.payload.accessToken, action.payload.refreshToken);
+      console.log("Admin status saved to localStorage:", action.payload.isAdmin);
     },
     updateAccessToken: (state, action: PayloadAction<string>) => {
       state.accessToken = action.payload;
-
-      // Update in localStorage
       setLocalStorageItem("accessToken", action.payload);
-
       console.log("Access token updated in localStorage:", action.payload);
     },
     clearCredentials: (state) => {
       state.accessToken = null;
       state.refreshToken = null;
+      state.isAdmin = false;
 
-      // Clear from localStorage
       removeLocalStorageItem("accessToken");
       removeLocalStorageItem("refreshToken");
+      removeLocalStorageItem("isAdmin");
 
-      console.log("Cleared tokens from localStorage");
+      console.log("Cleared all auth tokens and admin status from localStorage");
     },
   },
 });
-
 
 export const { setCredentials, updateAccessToken, clearCredentials } = authSlice.actions;
 export default authSlice.reducer;
