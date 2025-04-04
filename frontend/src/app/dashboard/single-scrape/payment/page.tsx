@@ -135,6 +135,17 @@ const PaymentForm: React.FC = () => {
               </button>
             </form>
 
+            {/* New: Pay with Voucher Option */}
+            <div className="mt-4 text-center">
+              <p className="text-gray-400 mb-2">or</p>
+              <button
+                onClick={() => router.push("/dashboard/single-scrape/voucher")}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-semibold transition"
+              >
+                Pay with Voucher
+              </button>
+            </div>
+
             {message && (
               <p className="mt-4 text-center font-medium text-white">{message}</p>
             )}
@@ -151,7 +162,8 @@ const PaymentForm: React.FC = () => {
             )}
 
             <p className="text-gray-500 text-sm text-center mt-4">
-              Payments securely processed by <span className="text-amber-500">Stripe</span>.
+              Payments securely processed by{" "}
+              <span className="text-amber-500">Stripe</span>.
             </p>
           </div>
         ) : (
