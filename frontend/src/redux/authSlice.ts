@@ -1,5 +1,4 @@
 // redux/authSlice.ts
-// redux/authSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 // Utility functions for localStorage
