@@ -42,9 +42,15 @@ async function refreshAccessToken() {
 // Axios request interceptor to include the token in the headers
 api.interceptors.request.use(
   async (config) => {
+    const authEndpoints = ['/auth/login', '/auth/signup', '/auth/refresh'];
+
+    // Skip auth endpoints to avoid refreshing too early
+    if (authEndpoints.some(path => config.url?.includes(path))) {
+      return config;
+    }
+
     let token = store.getState().auth.accessToken;
 
-    // If no token or token has expired, try to refresh it
     if (!token) {
       console.warn("No access token found, attempting refresh...");
       token = await refreshAccessToken();
@@ -57,8 +63,6 @@ api.interceptors.request.use(
       console.warn("No token available to attach");
     }
 
-    console.log("Request config after token attachment:", config);
-
     return config;
   },
   (error) => {
@@ -66,6 +70,7 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
 
 api.interceptors.response.use(
   (response) => response,
