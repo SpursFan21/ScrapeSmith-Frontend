@@ -19,13 +19,16 @@ interface Job {
 export default function CompletedJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
 
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
 
   useEffect(() => {
+    setIsClient(true);
+
     const fetchJobs = async () => {
       if (!accessToken || accessToken.split('.').length !== 3) {
-        console.warn('❌ No valid access token in Redux. Skipping API request.');
+        console.warn('No valid access token in Redux. Skipping API request.');
         setLoading(false);
         return;
       }
@@ -48,19 +51,26 @@ export default function CompletedJobsPage() {
   }, [accessToken]);
 
   return (
-    <div className="min-h-screen px-6 py-10 bg-gray-100">
+    <div className="min-h-screen px-6 py-10 bg-gradient-to-br from-gray-900 via-gray-800 to-black text-gray-100">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">🧾 Completed Jobs</h1>
+        <div className="rounded-xl border-2 border-amber-600 bg-gradient-to-br from-gray-800 to-gray-900 shadow-lg p-8 mb-10 text-center">
+          <h1 className="text-4xl font-extrabold text-amber-500 tracking-tight mb-2">
+            Completed Jobs
+          </h1>
+          <p className="text-sm text-gray-400">
+            All the jobs you’ve forged in the data furnace.
+          </p>
+        </div>
 
         {loading ? (
-          <div className="text-gray-600 text-center mt-10 animate-pulse">Loading completed jobs...</div>
+          <div className="text-amber-400 text-center mt-10 animate-pulse">Loading completed jobs...</div>
         ) : jobs.length === 0 ? (
-          <div className="text-center text-gray-500 mt-16">
-            <DocumentTextIcon className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-            <p>No jobs found yet. Start scraping to see results here!</p>
+          <div className="text-center text-gray-400 mt-16">
+            <DocumentTextIcon className="w-12 h-12 mx-auto text-gray-600 mb-2" />
+            <p>No jobs found yet. Start scraping to forge some results.</p>
           </div>
         ) : (
-          <ul className="space-y-4">
+          <ul className="space-y-5 bg-gray-900 p-6 rounded-lg border border-gray-700 shadow-inner">
             {jobs.map((job) => (
               <Transition
                 key={job.order_id}
@@ -72,15 +82,21 @@ export default function CompletedJobsPage() {
               >
                 <li
                   className={clsx(
-                    'bg-white p-5 shadow rounded-lg border border-gray-200 flex flex-col md:flex-row md:justify-between md:items-center transition hover:shadow-md'
+                    'bg-gradient-to-tr from-gray-800 to-gray-700 border border-gray-600 text-gray-200 p-5 shadow-lg rounded-lg flex flex-col md:flex-row md:justify-between md:items-center hover:border-amber-500 hover:shadow-amber-600/40 transition-all duration-300'
                   )}
                 >
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Order ID</p>
-                    <p className="text-sm text-gray-800 break-all">{job.order_id}</p>
-                    <p className="text-sm mt-2">
-                      <span className="font-medium text-gray-500">Analysis Type:</span>{' '}
-                      <span className="text-blue-600">{job.analysis_type}</span>
+                  <div className="w-full md:w-2/3">
+                    <p className="text-sm font-semibold text-amber-400">Order ID</p>
+                    <p className="text-sm text-gray-100 break-all">{job.order_id}</p>
+
+                    <p className="text-sm font-medium text-gray-400 mt-3">URL</p>
+                    <p className="text-sm text-blue-300 break-words underline underline-offset-2 decoration-dotted">
+                      {job.url.length > 80 ? `${job.url.slice(0, 80)}...` : job.url}
+                    </p>
+
+                    <p className="text-sm mt-3">
+                      <span className="font-medium text-gray-400">Analysis Type:</span>{' '}
+                      <span className="text-amber-500">{job.analysis_type}</span>
                     </p>
                   </div>
 
@@ -89,15 +105,17 @@ export default function CompletedJobsPage() {
                       href={job.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-sm text-indigo-600 hover:underline"
+                      className="inline-flex items-center text-sm text-amber-400 hover:text-amber-500 hover:underline"
                     >
                       <ArrowTopRightOnSquareIcon className="w-4 h-4 mr-1" />
                       View Source
                     </a>
-                    <div className="flex items-center justify-end mt-2 text-gray-500 text-sm">
-                      <ClockIcon className="w-4 h-4 mr-1" />
-                      {new Date(job.created_at).toLocaleString()}
-                    </div>
+                    {isClient && (
+                      <div className="flex items-center justify-end mt-2 text-gray-400 text-sm">
+                        <ClockIcon className="w-4 h-4 mr-1" />
+                        {new Date(job.created_at).toLocaleString()}
+                      </div>
+                    )}
                   </div>
                 </li>
               </Transition>
