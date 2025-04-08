@@ -21,7 +21,7 @@ interface RawData {
 }
 
 interface CleanData {
-  cleanedData: string;
+  cleaned_data: string;
 }
 
 export default function OrderDetailsPage() {
@@ -108,7 +108,7 @@ export default function OrderDetailsPage() {
             <pre className="text-gray-300 whitespace-pre-wrap">{JSON.stringify(rawData.data, null, 2)}</pre>
           )}
           {view === 'clean' && cleanData && (
-            <pre className="text-gray-300 whitespace-pre-wrap">{JSON.stringify(cleanData.cleanedData, null, 2)}</pre>
+            <pre className="text-gray-300 whitespace-pre-wrap">{cleanData.cleaned_data}</pre>
           )}
           {view === 'ai' && (
             <p className="text-gray-400">AI Analysis feature is coming soon.</p>
