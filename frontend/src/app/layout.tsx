@@ -4,6 +4,7 @@ import { Roboto } from "next/font/google";
 import Navbar from "./_components/NavBar";
 import Footer from "./_components/Footer";
 import Providers from "./providers";
+import AuthReset from "./_components/AuthReset"; // new
 
 const roboto = Roboto({
   weight: ["400", "500", "700"],
@@ -21,7 +22,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${roboto.className} min-h-screen flex flex-col bg-metal text-white`}>
         <Providers>
-          <Navbar /> {/* Keep Navbar as a client component */}
+          <AuthReset /> {/* clears tokens on client boot */}
+          <Navbar />
           <main className="flex-grow">{children}</main>
           <Footer />
         </Providers>
