@@ -24,22 +24,26 @@ interface CleanData {
   cleaned_data: string;
 }
 
+interface AIAnalysis {
+  analysis_data: string;
+}
+
+
 export default function OrderDetailsPage() {
   const { orderId } = useParams();
   const [orderData, setOrderData] = useState<OrderMeta | null>(null);
   const [rawData, setRawData] = useState<RawData | null>(null);
   const [cleanData, setCleanData] = useState<CleanData | null>(null);
-  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [view, setView] = useState<'raw' | 'clean' | 'ai'>('raw');
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
 
   useEffect(() => {
-    if (!accessToken) return; 
-
-
+    if (!accessToken) return;
+  
     const fetchOrderData = async () => {
       try {
-        const [orderRes, rawRes, cleanRes] = await Promise.all([
+        const [orderRes, rawRes, cleanRes, aiRes] = await Promise.all([
           axios.get(`http://localhost:8000/users/orders/${orderId}`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           }),
@@ -49,18 +53,23 @@ export default function OrderDetailsPage() {
           axios.get(`http://localhost:8000/users/cleaned-order/${orderId}`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           }),
+          axios.get(`http://localhost:8000/users/ai-analysis/${orderId}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }),
         ]);
+  
         setOrderData(orderRes.data);
         setRawData(rawRes.data);
         setCleanData(cleanRes.data);
-        // AI Analysis data fetching will be implemented later
+        setAiAnalysis(aiRes.data);
       } catch (error) {
         console.error('Error fetching order details:', error);
       }
     };
-
+  
     fetchOrderData();
   }, [orderId, accessToken]);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-gray-100 p-6">
@@ -111,8 +120,13 @@ export default function OrderDetailsPage() {
             <pre className="text-gray-300 whitespace-pre-wrap">{cleanData.cleaned_data}</pre>
           )}
           {view === 'ai' && (
-            <p className="text-gray-400">AI Analysis feature is coming soon.</p>
+            aiAnalysis ? (
+              <pre className="text-gray-300 whitespace-pre-wrap">{aiAnalysis.analysis_data}</pre>
+            ) : (
+              <p className="text-gray-400">No AI Analysis data found for this job.</p>
+            )
           )}
+
         </div>
       </div>
     </div>
