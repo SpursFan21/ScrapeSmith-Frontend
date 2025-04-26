@@ -60,13 +60,18 @@ const VoucherPaymentPage: React.FC = () => {
           }
         );
 
+        // Clear sessionStorage after successful queue
+        sessionStorage.removeItem("scrapeUrl");
+        sessionStorage.removeItem("analysisType");
+        sessionStorage.removeItem("customScript");
+
         setOrderSuccess(true);
-        setMessage("✅ Voucher accepted! Scrape job has been submitted.");
+        setMessage("Voucher accepted! Your scrape job has been queued and is being processed.");
       } else {
-        setMessage("❌ Invalid voucher code.");
+        setMessage("Invalid voucher code.");
       }
     } catch (err: any) {
-      setMessage(err.response?.data?.message || "❌ An error occurred.");
+      setMessage(err.response?.data?.message || "An error occurred.");
     } finally {
       setLoading(false);
     }
@@ -121,17 +126,19 @@ const VoucherPaymentPage: React.FC = () => {
           </button>
         </div>
 
+        {/* Status Message */}
         {message && (
           <p className="mt-4 text-center font-medium text-white">{message}</p>
         )}
 
+        {/* Success Redirect */}
         {orderSuccess && (
           <div className="mt-6 text-center">
             <button
-              onClick={() => router.push("/dashboard/orders")}
+              onClick={() => router.push("/dashboard/completed-jobs")}
               className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-semibold"
             >
-              View Order
+              View Completed Jobs
             </button>
           </div>
         )}

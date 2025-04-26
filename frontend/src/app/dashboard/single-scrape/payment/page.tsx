@@ -81,21 +81,30 @@ const PaymentForm: React.FC = () => {
       });
 
       if (result.error) {
-        setMessage(`❌ Payment failed: ${result.error.message}`);
+        setMessage(`Payment failed: ${result.error.message}`);
       } else if (result.paymentIntent?.status === "succeeded") {
-        setMessage("✅ Payment successful! Your scrape has been submitted.");
+        setMessage("Payment successful! Your scrape job has been queued and is being processed.");
         setOrderSuccess(true);
 
         const accessToken = localStorage.getItem("accessToken");
         await axios.post(
           "http://localhost:8000/scrape/single",
-          { url: scrapeUrl, analysisType, customScript },
+          {
+            url: scrapeUrl,
+            analysis_type: analysisType,
+            custom_script: customScript,
+          },
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
+
+        // Clear sessionStorage after successful queue
+        sessionStorage.removeItem("scrapeUrl");
+        sessionStorage.removeItem("analysisType");
+        sessionStorage.removeItem("customScript");
       }
     } catch (err) {
       console.error("Payment or scrape error:", err);
-      setMessage("❌ Something went wrong. Please try again.");
+      setMessage("Something went wrong. Please try again.");
     }
   };
 
@@ -135,7 +144,7 @@ const PaymentForm: React.FC = () => {
               </button>
             </form>
 
-            {/* New: Pay with Voucher Option */}
+            {/* Pay with Voucher Option */}
             <div className="mt-4 text-center">
               <p className="text-gray-400 mb-2">or</p>
               <button
@@ -153,10 +162,10 @@ const PaymentForm: React.FC = () => {
             {orderSuccess && (
               <div className="mt-6 text-center">
                 <button
-                  onClick={() => router.push("/dashboard/orders")}
+                  onClick={() => router.push("/dashboard/completed-jobs")}
                   className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-semibold"
                 >
-                  View Order
+                  View Completed Jobs
                 </button>
               </div>
             )}
