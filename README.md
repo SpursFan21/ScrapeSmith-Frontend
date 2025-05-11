@@ -14,8 +14,8 @@ This is the frontend of the ScrapeSmith platform, built using **Next.js**, **Typ
 - **Styling**: Tailwind CSS, Headless UI
 - **State Management**: Redux Toolkit
 - **HTTP Client**: Axios
-- **Routing**: Handled via the Next.js App Router (file-based, dynamic segments, layouts, and loading states)
-- **UI Enhancements**: ShadCN, Framer Motion, custom components
+- **Routing**: Handled via the Next.js App Router
+- **UI Enhancements**: Headless UI, Framer Motion,
 - **Auth**: JWT (access & refresh tokens), with Redux-based token refresh logic
 
 ---
