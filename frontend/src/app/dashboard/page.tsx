@@ -1,10 +1,15 @@
 // frontend/src/app/dashboard/page.tsx
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Transition } from "@headlessui/react";
-import { FiZap, FiCalendar, FiCheckCircle, FiClock, FiDatabase, FiBarChart2, FiBell, FiHelpCircle, FiActivity, FiMonitor, FiCreditCard, FiDollarSign } from "react-icons/fi";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+import {
+  FiZap, FiCalendar, FiCheckCircle, FiClock,
+  FiDatabase, FiBarChart2, FiBell, FiHelpCircle,
+  FiActivity, FiMonitor, FiCreditCard, FiDollarSign,
+} from "react-icons/fi";
 
 interface DashboardOption {
   title: string;
@@ -15,7 +20,15 @@ interface DashboardOption {
 }
 
 const Dashboard: React.FC = () => {
-  // Array of dashboard options with icons
+  const [isClient, setIsClient] = useState(false);
+
+  //  Prevent hydration mismatch or early Redux access
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+
   const options: DashboardOption[] = [
     {
       title: "Single Scrape",
@@ -103,41 +116,35 @@ const Dashboard: React.FC = () => {
     },
   ];
 
+  if (!isClient) return null; // Prevent crash during SSR
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-8">
-      {/* Container with metallic grey background and a border */}
-      <div className="w-full max-w-6xl bg-metallic border border-gray-600 p-8 rounded-2xl shadow-xl">
+    <div className="min-h-screen flex items-center justify-center p-8 bg-zinc-900">
+      <div className="w-full max-w-6xl bg-zinc-800 border border-zinc-700 p-8 rounded-2xl shadow-2xl">
         <h1 className="text-4xl font-extrabold text-center text-white mb-8">
           Dashboard
         </h1>
-        <p className="text-center text-lg text-gray-200 mb-12">
+        <p className="text-center text-lg text-zinc-300 mb-12">
           Select an option below to manage your ScrapeSmith services.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {options.map((option) => (
-            <Transition
+            <Link
               key={option.title}
-              appear={true}
-              show={true}
-              enter="transition duration-300 transform"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
+              href={option.href}
+              className={`group block p-6 ${option.bgColor}
+                rounded-tl-lg rounded-br-2xl 
+                shadow-md hover:shadow-xl 
+                hover:scale-105 hover:brightness-110 
+                hover:ring-2 hover:ring-amber-400 hover:ring-offset-2 
+                transition-all duration-300`}
             >
-              <Link
-                href={option.href}
-                className={`group block p-6 rounded-xl shadow-lg ${option.bgColor} hover:shadow-2xl transition-all duration-300`}
-              >
-                <div className="flex items-center space-x-3 mb-2">
-                  {option.icon}
-                  <h2 className="text-2xl font-bold text-white">
-                    {option.title}
-                  </h2>
-                </div>
-                <p className="text-white group-hover:opacity-90">
-                  {option.description}
-                </p>
-              </Link>
-            </Transition>
+              <div className="flex items-center space-x-3 mb-2">
+                {option.icon}
+                <h2 className="text-2xl font-bold text-white">{option.title}</h2>
+              </div>
+              <p className="text-white group-hover:opacity-90">{option.description}</p>
+            </Link>
           ))}
         </div>
       </div>
