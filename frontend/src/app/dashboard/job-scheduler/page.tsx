@@ -9,7 +9,6 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import ProtectedRoute from "@/app/_components/ProtectedRoute";
 
-// Analysis Options for the user to choose from
 const analysisOptions = [
   { name: "Sentiment Analysis", description: "Analyze text sentiment" },
   { name: "Keyword Extraction", description: "Extract key phrases and words" },
@@ -24,11 +23,23 @@ const analysisOptions = [
   { name: "Custom Analysis", description: "Upload or select a custom script" },
 ];
 
+const decodeToken = (token?: string): any => {
+  if (!token) return null;
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    return JSON.parse(atob(payload));
+  } catch (err) {
+    return null;
+  }
+};
+
 const JobSchedulerPage: React.FC = () => {
   const [jobs, setJobs] = useState<any[]>([{ url: "", analysisType: "", customScript: "", runAt: "", customExplanation: "" }]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [customScript, setCustomScript] = useState("");
   const [customExplanation, setCustomExplanation] = useState("");
+  const [successMessage, setSuccessMessage] = useState(false);
   const router = useRouter();
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
 
@@ -55,14 +66,21 @@ const JobSchedulerPage: React.FC = () => {
       return;
     }
 
-    // Prepare data to send to the backend
-    const jobDataArray = jobs.map(job => ({
-      ...job,
-      customScript: job.analysisType === "Custom Analysis" ? customScript : undefined,
-    }));
+    const user = accessToken ? decodeToken(accessToken) : null;
+
+    const jobDataArray = jobs.map(job => {
+      const localDate = new Date(job.runAt);
+      const runAtUtc = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
+      return {
+        ...job,
+        userId: user?.sub,
+        runAt: runAtUtc.toISOString(),
+        customScript: job.analysisType === "Custom Analysis" ? customScript : undefined,
+      };
+    });
 
     try {
-      const response = await fetch("/api/schedule", {
+      const response = await fetch("http://localhost:8000/job/api/schedule", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -74,7 +92,7 @@ const JobSchedulerPage: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         console.log("Jobs scheduled:", data);
-        router.push("/dashboard/thank-you");
+        setSuccessMessage(true);
       } else {
         console.error("Failed to schedule jobs");
       }
@@ -90,10 +108,23 @@ const JobSchedulerPage: React.FC = () => {
           <h1 className="text-4xl font-extrabold text-center text-white mb-8">Job Scheduler</h1>
           <p className="text-center text-lg text-gray-300 mb-6">Schedule multiple scrape jobs with custom analysis types</p>
 
-          {jobs.map((job, index) => (
+          {successMessage && (
+            <div className="bg-green-600 text-white p-4 rounded-lg mb-6 text-center">
+              Job(s) scheduled successfully.
+              <div className="mt-4">
+                <button
+                  onClick={() => router.push("/dashboard")}
+                  className="px-6 py-2 bg-white text-green-700 font-semibold rounded hover:bg-gray-100"
+                >
+                  Return to Dashboard
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!successMessage && jobs.map((job, index) => (
             <div key={index} className="mb-8">
               <h3 className="text-xl font-semibold text-gray-200 mb-4">Job {index + 1}</h3>
-
               <div className="mb-4">
                 <label className="block text-lg text-gray-200">Target URL</label>
                 <input
@@ -104,7 +135,6 @@ const JobSchedulerPage: React.FC = () => {
                   className="w-full p-3 rounded bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>
-
               <div className="mb-4">
                 <label className="block text-lg text-gray-200">Select Analysis Type</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -120,7 +150,6 @@ const JobSchedulerPage: React.FC = () => {
                   ))}
                 </div>
               </div>
-
               <div className="mb-4">
                 <label className="block text-lg text-gray-200">Schedule Time</label>
                 <input
@@ -130,7 +159,6 @@ const JobSchedulerPage: React.FC = () => {
                   className="w-full p-3 rounded bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>
-
               {job.analysisType === "Custom Analysis" && (
                 <div className="mb-4">
                   <label className="block text-lg text-gray-200">Custom Script</label>
@@ -145,27 +173,29 @@ const JobSchedulerPage: React.FC = () => {
             </div>
           ))}
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={handleAddJob}
-              className="bg-amber-500 hover:bg-amber-600 text-white py-3 px-6 rounded-lg font-semibold transition"
-            >
-              Add Another Job
-            </button>
-          </div>
-
-          <div className="mt-8 text-center">
-            <button
-              onClick={handleScheduleJobs}
-              className="bg-amber-500 hover:bg-amber-600 text-white py-3 px-6 rounded-lg font-semibold transition"
-            >
-              Schedule Jobs
-            </button>
-          </div>
+          {!successMessage && (
+            <>
+              <div className="mt-6 text-center">
+                <button
+                  onClick={handleAddJob}
+                  className="bg-amber-500 hover:bg-amber-600 text-white py-3 px-6 rounded-lg font-semibold transition"
+                >
+                  Add Another Job
+                </button>
+              </div>
+              <div className="mt-8 text-center">
+                <button
+                  onClick={handleScheduleJobs}
+                  className="bg-amber-500 hover:bg-amber-600 text-white py-3 px-6 rounded-lg font-semibold transition"
+                >
+                  Schedule Jobs
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Custom Script Modal */}
       <Transition show={isModalOpen} as={Fragment}>
         <Dialog onClose={() => setIsModalOpen(false)} className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
