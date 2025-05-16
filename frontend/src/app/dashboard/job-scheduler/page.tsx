@@ -68,16 +68,13 @@ const JobSchedulerPage: React.FC = () => {
 
     const user = accessToken ? decodeToken(accessToken) : null;
 
-    const jobDataArray = jobs.map(job => {
-      const localDate = new Date(job.runAt);
-      const runAtUtc = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
-      return {
-        ...job,
-        userId: user?.sub,
-        runAt: runAtUtc.toISOString(),
-        customScript: job.analysisType === "Custom Analysis" ? customScript : undefined,
-      };
-    });
+    const jobDataArray = jobs.map(job => ({
+      ...job,
+      userId: user?.sub,
+      runAt: new Date(job.runAt).toISOString(),
+      customScript: job.analysisType === "Custom Analysis" ? customScript : undefined,
+    }));
+
 
     try {
       const response = await fetch("http://localhost:8000/job/api/schedule", {
