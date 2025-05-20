@@ -1,4 +1,5 @@
 //Frontend\frontend\src\app\dashboard\completed-jobs\order-details\[orderId]\page.tsx
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,77 +17,69 @@ interface OrderMeta {
   custom_script?: string;
 }
 
-interface RawData {
-  data: string;
-}
-
-interface CleanData {
-  cleaned_data: string;
-}
-
-interface AIAnalysis {
-  analysis_data: string;
-}
-
-
 export default function OrderDetailsPage() {
   const { orderId } = useParams();
   const [orderData, setOrderData] = useState<OrderMeta | null>(null);
-  const [rawData, setRawData] = useState<RawData | null>(null);
-  const [cleanData, setCleanData] = useState<CleanData | null>(null);
-  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+  const [rawData, setRawData] = useState<string>('');
+  const [cleanData, setCleanData] = useState<string>('');
+  const [aiAnalysis, setAiAnalysis] = useState<string>('');
   const [view, setView] = useState<'raw' | 'clean' | 'ai'>('raw');
+  const [loading, setLoading] = useState(true);
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
 
   useEffect(() => {
     if (!accessToken) return;
-  
-    const fetchOrderData = async () => {
+
+    const fetchFullOrder = async () => {
+      setLoading(true);
       try {
-        const [orderRes, rawRes, cleanRes, aiRes] = await Promise.all([
-          axios.get(`http://localhost:8000/users/orders/${orderId}`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }),
-          axios.get(`http://localhost:8000/users/scraped-order/${orderId}`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }),
-          axios.get(`http://localhost:8000/users/cleaned-order/${orderId}`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }),
-          axios.get(`http://localhost:8000/users/ai-analysis/${orderId}`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }),
-        ]);
-  
-        setOrderData(orderRes.data);
-        setRawData(rawRes.data);
-        setCleanData(cleanRes.data);
-        setAiAnalysis(aiRes.data);
-      } catch (error) {
-        console.error('Error fetching order details:', error);
+        const res = await axios.get(`http://localhost:8000/users/order-details/${orderId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        const { order, raw_data, clean_data, ai_analysis } = res.data;
+
+        setOrderData(order);
+        setRawData(raw_data || '');
+        setCleanData(clean_data || '');
+        setAiAnalysis(ai_analysis || '');
+      } catch (err) {
+        console.error('Failed to fetch order details:', err);
+      } finally {
+        setLoading(false);
       }
     };
-  
-    fetchOrderData();
-  }, [orderId, accessToken]);
 
+    fetchFullOrder();
+  }, [orderId, accessToken]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-gray-100 p-6">
       <div className="max-w-5xl mx-auto">
-        {/* Order Metadata */}
-        {orderData && (
-          <div className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 mb-6 text-center">
-            <h1 className="text-3xl font-bold text-amber-500 mb-4">Order Details</h1>
-            <p><span className="font-semibold text-gray-400">Order ID:</span> {orderData.order_id}</p>
-            <p><span className="font-semibold text-gray-400">Created At:</span> {new Date(orderData.created_at).toLocaleString()}</p>
-            <p><span className="font-semibold text-gray-400">URL:</span> <a href={orderData.url} className="text-amber-400 hover:underline">{orderData.url}</a></p>
-            <p><span className="font-semibold text-gray-400">Analysis Type:</span> {orderData.analysis_type}</p>
-            {orderData.custom_script && (
-              <p><span className="font-semibold text-gray-400">Custom Script:</span> {orderData.custom_script}</p>
-            )}
-          </div>
-        )}
+
+        {/* Skeleton or Loaded Order Metadata */}
+        <div className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 mb-6 text-center">
+          {loading ? (
+            <>
+              <div className="h-8 w-2/3 mx-auto bg-gray-700 rounded animate-pulse mb-4" />
+              <div className="h-4 w-full bg-gray-700 rounded animate-pulse mb-2" />
+              <div className="h-4 w-5/6 bg-gray-700 rounded animate-pulse mb-2" />
+              <div className="h-4 w-4/6 bg-gray-700 rounded animate-pulse mb-2" />
+              <div className="h-4 w-3/4 bg-gray-700 rounded animate-pulse" />
+            </>
+          ) : orderData && (
+            <>
+              <h1 className="text-3xl font-bold text-amber-500 mb-4">Order Details</h1>
+              <p><span className="font-semibold text-gray-400">Order ID:</span> {orderData.order_id}</p>
+              <p><span className="font-semibold text-gray-400">Created At:</span> {new Date(orderData.created_at).toLocaleString()}</p>
+              <p><span className="font-semibold text-gray-400">URL:</span> <a href={orderData.url} className="text-amber-400 hover:underline">{orderData.url}</a></p>
+              <p><span className="font-semibold text-gray-400">Analysis Type:</span> {orderData.analysis_type}</p>
+              {orderData.custom_script && (
+                <p><span className="font-semibold text-gray-400">Custom Script:</span> {orderData.custom_script}</p>
+              )}
+            </>
+          )}
+        </div>
 
         {/* Toggle Switches */}
         <div className="flex justify-center space-x-4 mb-6">
@@ -111,25 +104,25 @@ export default function OrderDetailsPage() {
           ))}
         </div>
 
-        {/* Data Display */}
-        <div className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700">
-          {view === 'raw' && rawData && (
-            <pre className="text-gray-300 whitespace-pre-wrap">{JSON.stringify(rawData.data, null, 2)}</pre>
+        {/* Data Display Section */}
+        <div className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 min-h-[300px]">
+          {loading ? (
+            <div className="space-y-4">
+              {[...Array(8)].map((_, idx) => (
+                <div key={idx} className="h-4 w-full bg-gray-700 animate-pulse rounded" />
+              ))}
+            </div>
+          ) : view === 'raw' ? (
+            <pre className="text-gray-300 whitespace-pre-wrap">{rawData}</pre>
+          ) : view === 'clean' ? (
+            <pre className="text-gray-300 whitespace-pre-wrap">{cleanData}</pre>
+          ) : aiAnalysis ? (
+            <pre className="text-gray-300 whitespace-pre-wrap">{aiAnalysis}</pre>
+          ) : (
+            <p className="text-gray-400">No AI Analysis data found for this job.</p>
           )}
-          {view === 'clean' && cleanData && (
-            <pre className="text-gray-300 whitespace-pre-wrap">{cleanData.cleaned_data}</pre>
-          )}
-          {view === 'ai' && (
-            aiAnalysis ? (
-              <pre className="text-gray-300 whitespace-pre-wrap">{aiAnalysis.analysis_data}</pre>
-            ) : (
-              <p className="text-gray-400">No AI Analysis data found for this job.</p>
-            )
-          )}
-
         </div>
       </div>
     </div>
   );
 }
-
