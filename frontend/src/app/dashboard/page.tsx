@@ -109,7 +109,7 @@ const Dashboard: React.FC = () => {
     },
     {
       title: "Forge Balance",
-      description: "View your wallet balance and available resources.",
+      description: "View your wallet balance and add a top up.",
       href: "/dashboard/forge-balance",
       bgColor: "bg-emerald-500",
       icon: <FiDollarSign size={24} />,
