@@ -1,26 +1,36 @@
 // frontend\src\app\_components\NavBar.tsx
+
 "use client";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "../../redux/store";
-import { clearCredentials } from "../../redux/authSlice";
+import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
+import { RootState, useAppDispatch } from "../../redux/store";
+import { clearCredentials } from "../../redux/authSlice";
+import { fetchForgeBalance } from "@/redux/forgeBalanceSlice";
 import api from "../api/axios";
 
 const Navbar: React.FC = () => {
   const router = useRouter();
-  const dispatch = useDispatch();
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Local state to track login status
+  const dispatch = useAppDispatch();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+  const balance = useSelector((state: RootState) => state.forgeBalance.balance);
 
   useEffect(() => {
-    setIsLoggedIn(!!accessToken); // Update login status when accessToken changes
-  }, [accessToken]);
+    if (!accessToken) {
+      setIsLoggedIn(false);
+      return;
+    }
+
+    setIsLoggedIn(true);
+    dispatch(fetchForgeBalance());
+  }, [accessToken, dispatch]);
+
 
   const handleLogout = async () => {
     try {
-      // Call logout endpoint to invalidate the session on the server
       await api.post("/auth/logout");
     } catch (err) {
       console.error("Error during logout:", err);
@@ -36,7 +46,7 @@ const Navbar: React.FC = () => {
         <Link href="/" className="text-2xl font-bold text-amber-500">
           ScrapeSmith
         </Link>
-        <div className="flex space-x-8">
+        <div className="flex space-x-6 items-center">
           <Link href="/" className="text-white hover:text-amber-400">
             Home
           </Link>
@@ -48,6 +58,11 @@ const Navbar: React.FC = () => {
               <Link href="/account" className="text-white hover:text-amber-400">
                 Account
               </Link>
+              {balance !== null && (
+                <span className="text-amber-400 font-bold text-sm">
+                  {balance} Jobs
+                </span>
+              )}
               <button
                 onClick={handleLogout}
                 className="text-white hover:text-amber-400"

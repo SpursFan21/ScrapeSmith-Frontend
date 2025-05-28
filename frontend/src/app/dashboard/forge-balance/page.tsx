@@ -3,9 +3,12 @@
 'use client';
 
 import { useEffect, useState, Fragment } from 'react';
+import { useSelector } from 'react-redux';
 import { Dialog, Transition } from '@headlessui/react';
 import { CardElement, Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import { fetchForgeBalance } from '@/redux/forgeBalanceSlice';
+import { RootState, useAppDispatch } from '@/redux/store';
 import api from '@/app/api/axios';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -21,7 +24,8 @@ const topUpOptions = [
 ];
 
 export default function ForgeBalancePage() {
-  const [balance, setBalance] = useState<number | null>(null);
+  const dispatch = useAppDispatch();
+  const balance = useSelector((state: RootState) => state.forgeBalance.balance);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -30,18 +34,9 @@ export default function ForgeBalancePage() {
   const [voucher, setVoucher] = useState('');
   const [showStripeForm, setShowStripeForm] = useState(false);
 
-  const refetchBalance = async () => {
-    try {
-      const res = await api.get('/payment/balance');
-      setBalance(res.data.balance);
-    } catch (err) {
-      console.error('Failed to refresh balance:', err);
-    }
-  };
-
   useEffect(() => {
-    refetchBalance();
-  }, []);
+    dispatch(fetchForgeBalance());
+  }, [dispatch]);
 
   const handleTopUpClick = (amount: number) => {
     setSelectedAmount(amount);
@@ -59,7 +54,7 @@ export default function ForgeBalancePage() {
         code: voucher,
         amount: selectedAmount,
       });
-      await refetchBalance();
+      dispatch(fetchForgeBalance());
       resetDialogs();
     } catch (err) {
       console.error('Failed to redeem voucher:', err);
@@ -199,7 +194,7 @@ export default function ForgeBalancePage() {
                       <button
                         onClick={() => {
                           alert('Stripe payment simulation complete.');
-                          refetchBalance();
+                          dispatch(fetchForgeBalance());
                           resetDialogs();
                         }}
                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
