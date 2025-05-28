@@ -1,100 +1,98 @@
 // frontend\src\app\api\axios.ts
-import axios from 'axios';
+
+import axios, {
+  AxiosResponse,
+  AxiosError,
+  AxiosHeaders,
+  InternalAxiosRequestConfig,
+} from 'axios';
 import { store } from '../../redux/store';
 import { updateAccessToken, clearCredentials } from '../../redux/authSlice';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000', // Base URL for your API
+  baseURL: 'http://localhost:8000',
 });
 
-// Refresh the access token using the refresh token
-async function refreshAccessToken() {
+// Refresh access token using refresh token
+async function refreshAccessToken(): Promise<string | null> {
   try {
-    const refreshToken = store.getState().auth.refreshToken;
+    const authState = store.getState().auth;
+    console.log("🔎 Access token from Redux:", authState.accessToken);
+    console.log("🔎 Refresh token from Redux:", authState.refreshToken);
 
-    if (!refreshToken) throw new Error("No refresh token available");
-
-    console.log("Attempting to refresh token with refreshToken:", refreshToken);
+    if (!authState.refreshToken) throw new Error("No refresh token available");
 
     const response = await axios.post('http://localhost:8000/auth/refresh', {
-      refresh_token: refreshToken,
+      refresh_token: authState.refreshToken,
     });
 
     const newAccessToken = response.data.access_token;
+    if (!newAccessToken) throw new Error("No access token returned");
 
-    if (!newAccessToken) {
-      throw new Error("No access token returned from refresh");
-    }
-
-    // Update the access token in Redux
     store.dispatch(updateAccessToken(newAccessToken));
-
-    console.log("Access token refreshed successfully:", newAccessToken);
-
+    console.log("✅ Token refreshed:", newAccessToken);
     return newAccessToken;
-  } catch (error) {
-    console.error("Error refreshing access token:", error);
+  } catch (err) {
+    console.error("❌ Token refresh failed:", err);
     store.dispatch(clearCredentials());
     return null;
   }
 }
 
-// Axios request interceptor to include the token in the headers
+// Request interceptor
 api.interceptors.request.use(
-  async (config) => {
+  async (config: InternalAxiosRequestConfig) => {
     const authEndpoints = ['/auth/login', '/auth/signup', '/auth/refresh'];
-
-    // Skip auth endpoints to avoid refreshing too early
-    if (authEndpoints.some(path => config.url?.includes(path))) {
-      return config;
-    }
+    if (authEndpoints.some(path => config.url?.includes(path))) return config;
 
     let token = store.getState().auth.accessToken;
-
     if (!token) {
-      console.warn("No access token found, attempting refresh...");
+      console.warn("⚠️ No token, trying refresh...");
       token = await refreshAccessToken();
     }
 
     if (token) {
-      console.log("Attaching token to request:", token);
-      config.headers.Authorization = `Bearer ${token}`;
+      if (config.headers instanceof AxiosHeaders) {
+        config.headers.set('Authorization', `Bearer ${token}`);
+      } else {
+        config.headers = new AxiosHeaders({ Authorization: `Bearer ${token}` });
+      }
     } else {
-      console.warn("No token available to attach");
+      console.warn("⚠️ No token attached to request");
     }
 
     return config;
   },
-  (error) => {
-    console.error("Request interceptor error:", error);
+  (error: AxiosError) => {
+    console.error("🚫 Request error:", error);
     return Promise.reject(error);
   }
 );
 
-
+// Response interceptor
 api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
+  (response: AxiosResponse) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      console.warn("Received 401, attempting to refresh token...");
 
       const newToken = await refreshAccessToken();
-
       if (newToken) {
-        console.log("Retrying original request with new token...");
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        if (originalRequest.headers instanceof AxiosHeaders) {
+          originalRequest.headers.set('Authorization', `Bearer ${newToken}`);
+        } else {
+          originalRequest.headers = new AxiosHeaders({ Authorization: `Bearer ${newToken}` });
+        }
+
+        console.log("🔁 Retrying original request with refreshed token");
         return api(originalRequest);
-      } else {
-        console.warn("Token refresh failed, clearing credentials");
-        store.dispatch(clearCredentials());
-        return Promise.reject(error);
       }
+
+      store.dispatch(clearCredentials());
     }
 
-    console.error("Response interceptor error:", error);
     return Promise.reject(error);
   }
 );

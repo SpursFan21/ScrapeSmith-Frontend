@@ -4,39 +4,37 @@
 
 import { useEffect, useState, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/redux/store';
-import { fetchForgeBalance, setBalance } from '@/redux/forgeBalanceSlice';
-import axios from 'axios';
 import { motion } from 'framer-motion';
+import api from '@/app/api/axios';
 
 export default function ForgeBalancePage() {
-  const dispatch = useDispatch();
-  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
-  const balance = useSelector((state: RootState) => state.forgeBalance.balance);
-  const error = useSelector((state: RootState) => state.forgeBalance.error);
-
+  const [balance, setBalance] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [voucher, setVoucher] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (accessToken) {
-      dispatch(fetchForgeBalance(accessToken) as any);
-    }
-  }, [accessToken, dispatch]);
+    const fetchBalance = async () => {
+      try {
+        const res = await api.get('/payment/balance');
+        setBalance(res.data.balance);
+      } catch (err) {
+        console.error('Failed to fetch balance:', err);
+        setError('Failed to fetch balance');
+      }
+    };
+
+    fetchBalance();
+  }, []);
 
   const applyVoucher = async () => {
     try {
       setLoading(true);
-      const res = await axios.post(
-        'http://localhost:8000/payment/balance/top-up/voucher',
-        { code: voucher },
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-      dispatch(setBalance(res.data.balance));
+      const res = await api.post('/payment/balance/top-up/voucher', {
+        code: voucher,
+      });
+      setBalance(res.data.balance);
       setOpen(false);
       setVoucher('');
     } catch (err) {

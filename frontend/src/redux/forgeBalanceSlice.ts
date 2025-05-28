@@ -1,7 +1,7 @@
 //Frontend\frontend\src\redux\forgeBalanceSlice.ts
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import axios from 'axios';
+import api from '@/app/api/axios';
 
 interface ForgeBalanceState {
   balance: number | null;
@@ -15,16 +15,18 @@ const initialState: ForgeBalanceState = {
   error: null,
 };
 
-export const fetchForgeBalance = createAsyncThunk(
+export const fetchForgeBalance = createAsyncThunk<
+  number, // return type
+  void,   // thunk arg
+  { rejectValue: string }
+>(
   'forgeBalance/fetchBalance',
-  async (accessToken: string, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-
-      const res = await axios.get('http://localhost:8000/payment/balance', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const res = await api.get('/payment/balance');
       return res.data.balance;
     } catch (err: any) {
+      console.error(" Failed to fetch balance:", err);
       return rejectWithValue('Failed to fetch balance');
     }
   }
@@ -50,7 +52,7 @@ const forgeBalanceSlice = createSlice({
       })
       .addCase(fetchForgeBalance.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = action.payload || 'Unknown error';
       });
   },
 });

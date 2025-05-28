@@ -1,5 +1,7 @@
 //Frontend\frontend\src\redux\store.ts
 
+//Frontend\frontend\src\redux\store.ts
+
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './authSlice';
 import forgeBalanceReducer from './forgeBalanceSlice';
