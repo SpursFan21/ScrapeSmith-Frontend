@@ -4,8 +4,11 @@
 
 import { useEffect, useState, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { motion } from 'framer-motion';
+import { CardElement, Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import api from '@/app/api/axios';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 const topUpOptions = [
   { amount: 10, price: 10 },
@@ -20,9 +23,12 @@ const topUpOptions = [
 export default function ForgeBalancePage() {
   const [balance, setBalance] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
-  const [voucher, setVoucher] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [showPaymentChoice, setShowPaymentChoice] = useState(false);
+  const [voucherMode, setVoucherMode] = useState(false);
+  const [voucher, setVoucher] = useState('');
+  const [showStripeForm, setShowStripeForm] = useState(false);
 
   const refetchBalance = async () => {
     try {
@@ -37,37 +43,38 @@ export default function ForgeBalancePage() {
     refetchBalance();
   }, []);
 
+  const handleTopUpClick = (amount: number) => {
+    setSelectedAmount(amount);
+    setShowPaymentChoice(true);
+    setVoucherMode(false);
+    setShowStripeForm(false);
+    setError(null);
+  };
+
   const applyVoucher = async () => {
+    if (!selectedAmount || !voucher) return;
     try {
       setLoading(true);
-      await api.post('/payment/balance/top-up/voucher', { code: voucher });
+      await api.post('/payment/balance/top-up/voucher', {
+        code: voucher,
+        amount: selectedAmount,
+      });
       await refetchBalance();
-      setOpen(false);
-      setVoucher('');
-      setError(null);
+      resetDialogs();
     } catch (err) {
-      console.error('Failed to apply voucher:', err);
-      setError('Failed to redeem voucher');
+      console.error('Failed to redeem voucher:', err);
+      setError('Invalid voucher code');
     } finally {
       setLoading(false);
     }
   };
 
-  const topUp = async (amount: number) => {
-    try {
-      setLoading(true);
-      await api.post('/payment/balance/top-up/voucher', {
-        code: 'yoobee301',
-        amount,
-      });
-      await refetchBalance();
-      setError(null);
-    } catch (err) {
-      console.error(`Failed to top-up ${amount}:`, err);
-      setError('Top-up failed. Try again.');
-    } finally {
-      setLoading(false);
-    }
+  const resetDialogs = () => {
+    setVoucher('');
+    setSelectedAmount(null);
+    setVoucherMode(false);
+    setShowStripeForm(false);
+    setShowPaymentChoice(false);
   };
 
   return (
@@ -93,7 +100,7 @@ export default function ForgeBalancePage() {
             {topUpOptions.map((option, idx) => (
               <button
                 key={option.amount}
-                onClick={() => topUp(option.amount)}
+                onClick={() => handleTopUpClick(option.amount)}
                 disabled={loading}
                 className="bg-gradient-to-br from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-white font-semibold py-4 px-6 rounded-xl border border-amber-900 shadow-lg transition disabled:opacity-50"
               >
@@ -108,38 +115,101 @@ export default function ForgeBalancePage() {
             ))}
           </div>
         </div>
-
-        <button
-          onClick={() => setOpen(true)}
-          className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-semibold rounded-lg border border-gray-600 transition shadow-sm"
-        >
-          Redeem Voucher Code
-        </button>
       </div>
 
-      <Transition show={open} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={setOpen}>
+      <Transition show={showPaymentChoice} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={resetDialogs}>
           <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm" />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="bg-gray-900 border border-amber-600 p-6 rounded-xl max-w-md w-full shadow-2xl">
-              <Dialog.Title className="text-xl text-amber-400 mb-4 font-semibold">
-                Enter Voucher Code
-              </Dialog.Title>
-              <input
-                value={voucher}
-                onChange={(e) => setVoucher(e.target.value)}
-                placeholder="Enter code"
-                className="w-full p-3 rounded bg-gray-800 border border-gray-600 text-white focus:ring-amber-500"
-              />
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={applyVoucher}
-                  disabled={loading}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 rounded text-white font-medium"
-                >
-                  {loading ? 'Applying...' : 'Apply'}
-                </button>
-              </div>
+              {!voucherMode && !showStripeForm && (
+                <>
+                  <Dialog.Title className="text-xl text-amber-400 mb-4 font-semibold">
+                    Choose Payment Method
+                  </Dialog.Title>
+                  <div className="flex flex-col gap-4">
+                    <button
+                      onClick={() => setVoucherMode(true)}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-semibold"
+                    >
+                      Pay with Voucher
+                    </button>
+                    <button
+                      onClick={() => setShowStripeForm(true)}
+                      className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded font-semibold"
+                    >
+                      Pay with Stripe
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {voucherMode && (
+                <>
+                  <Dialog.Title className="text-xl text-amber-400 mb-4 font-semibold">
+                    Enter Voucher Code
+                  </Dialog.Title>
+                  <input
+                    value={voucher}
+                    onChange={(e) => setVoucher(e.target.value)}
+                    placeholder="Enter code"
+                    className="w-full p-3 rounded bg-gray-800 border border-gray-600 text-white focus:ring-amber-500"
+                  />
+                  <div className="mt-4 flex justify-between">
+                    <button
+                      onClick={resetDialogs}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={applyVoucher}
+                      disabled={loading}
+                      className="px-4 py-2 bg-amber-600 hover:bg-amber-700 rounded text-white font-medium"
+                    >
+                      {loading ? 'Applying...' : 'Apply'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {showStripeForm && (
+                <Elements stripe={stripePromise}>
+                  <div>
+                    <Dialog.Title className="text-xl text-amber-400 mb-4 font-semibold">
+                      Enter Card Details
+                    </Dialog.Title>
+                    <div className="bg-gray-800 p-4 rounded mb-4">
+                      <CardElement options={{
+                        style: {
+                          base: {
+                            color: '#fff',
+                            fontSize: '16px',
+                          },
+                          invalid: {
+                            color: '#f87171',
+                          }
+                        }
+                      }} />
+                    </div>
+                    <div className="flex justify-between">
+                      <button onClick={resetDialogs} className="text-gray-400 hover:text-white">
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          alert('Stripe payment simulation complete.');
+                          refetchBalance();
+                          resetDialogs();
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                      >
+                        Complete Payment
+                      </button>
+                    </div>
+                  </div>
+                </Elements>
+              )}
             </div>
           </div>
         </Dialog>
