@@ -8,6 +8,11 @@ import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import ProtectedRoute from "@/app/_components/ProtectedRoute";
+import { fetchForgeBalance } from "@/redux/forgeBalanceSlice";
+import { useAppDispatch } from "@/redux/store";
+import api from "@/app/api/axios";
+import { toast } from "react-hot-toast";
+
 
 const analysisOptions = [
   { name: "Sentiment Analysis", description: "Analyze text sentiment" },
@@ -42,6 +47,13 @@ const JobSchedulerPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState(false);
   const router = useRouter();
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+  const balance = useSelector((state: RootState) => state.forgeBalance.balance);
+  const dispatch = useAppDispatch();
+  const [showTopUpPrompt, setShowTopUpPrompt] = useState(false);
+  const jobCost = 1; // Cost per job in Forge Balance
+  const totalCost = jobs.length * jobCost;
+  const [loading, setLoading] = useState(false);
+
 
   const handleAddJob = () => {
     setJobs([...jobs, { url: "", analysisType: "", customScript: "", runAt: "", customExplanation: "" }]);
@@ -60,46 +72,98 @@ const JobSchedulerPage: React.FC = () => {
     }
   };
 
-  const handleScheduleJobs = async () => {
-    if (jobs.some(job => !job.url || !job.analysisType || !job.runAt)) {
-      alert("Please fill in all required fields for each job.");
+
+const handleScheduleJobs = async () => {
+  const user = accessToken ? decodeToken(accessToken) : null;
+  const jobCount = jobs.length;
+
+  if (!user || !accessToken) {
+    alert("You must be logged in.");
+    return;
+  }
+
+  if (jobs.some(job => !job.url || !job.analysisType || !job.runAt)) {
+    alert("Please fill in all required fields for each job.");
+    return;
+  }
+
+  if (balance !== null && jobCount > balance) {
+    setShowTopUpPrompt(true);
+    return;
+  }
+
+  const jobDataArray = jobs.map(job => ({
+    ...job,
+    userId: user.sub,
+    runAt: new Date(job.runAt).toISOString(),
+    customScript: job.analysisType === "Custom Analysis" ? customScript : undefined,
+  }));
+
+  setLoading(true); // start loading
+
+  try {
+    // Step 1: Deduct balance (payment)
+    const paymentResponse = await api.post("/payment/schedule", {
+      amount: jobCount,
+    });
+
+    if (paymentResponse.status !== 200) {
+      toast.error("Payment processing failed.");
       return;
     }
 
-    const user = accessToken ? decodeToken(accessToken) : null;
+    // Step 2: Schedule jobs
+    const jobResponse = await api.post("/job/api/schedule", jobDataArray);
 
-    const jobDataArray = jobs.map(job => ({
-      ...job,
-      userId: user?.sub,
-      runAt: new Date(job.runAt).toISOString(),
-      customScript: job.analysisType === "Custom Analysis" ? customScript : undefined,
-    }));
+    if (jobResponse.status === 200) {
+      toast.success("Jobs scheduled successfully!");
+      dispatch(fetchForgeBalance()); // refresh updated balance
+      setSuccessMessage(true);
 
-
-    try {
-      const response = await fetch("http://localhost:8000/job/api/schedule", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(jobDataArray),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Jobs scheduled:", data);
-        setSuccessMessage(true);
-      } else {
-        console.error("Failed to schedule jobs");
-      }
-    } catch (err) {
-      console.error("Error scheduling jobs:", err);
+      // optional: clear form
+      setJobs([{ url: "", analysisType: "", customScript: "", runAt: "", customExplanation: "" }]);
+      setCustomScript("");
+      setCustomExplanation("");
+    } else {
+      toast.error("Job scheduling failed.");
     }
-  };
+  } catch (err) {
+    console.error("Error in scheduling process:", err);
+    toast.error("An error occurred. Please try again.");
+  } finally {
+    setLoading(false); // always stop loading
+  }
+};
+
+
+
 
   return (
     <ProtectedRoute>
+
+      <Transition show={showTopUpPrompt} as={Fragment}>
+        <Dialog onClose={() => setShowTopUpPrompt(false)} className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4">
+            <div className="fixed inset-0 bg-black bg-opacity-60" />
+            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md z-50 border border-gray-600 text-white">
+              <Dialog.Title className="text-lg font-bold mb-4">Insufficient Forge Balance</Dialog.Title>
+              <p className="mb-4">
+                You need <strong>{totalCost}</strong> Forge Balance to schedule {jobs.length} job(s), but you only have <strong>{balance}</strong>.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setShowTopUpPrompt(false)} className="bg-gray-700 px-4 py-2 rounded hover:bg-gray-600">
+                  Cancel
+                </button>
+                <button onClick={() => router.push("/dashboard/forge-balance")} className="bg-amber-600 px-4 py-2 rounded hover:bg-amber-700">
+                  Top Up Now
+                </button>
+              </div>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+
+
       <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-b from-gray-800 to-gray-900">
         <div className="w-full max-w-4xl p-10 bg-gradient-to-r from-gray-800 to-gray-700 border border-gray-600 rounded-2xl shadow-2xl">
           <h1 className="text-4xl font-extrabold text-center text-white mb-8">Job Scheduler</h1>
@@ -170,6 +234,12 @@ const JobSchedulerPage: React.FC = () => {
             </div>
           ))}
 
+          <div className="text-center text-gray-300 font-medium mb-4">
+            Jobs Scheduled: {jobs.length} × {jobCost} = <span className="text-white font-bold">{totalCost}</span>
+          </div>
+
+
+
           {!successMessage && (
             <>
               <div className="mt-6 text-center">
@@ -182,10 +252,13 @@ const JobSchedulerPage: React.FC = () => {
               </div>
               <div className="mt-8 text-center">
                 <button
+                  disabled={loading}
                   onClick={handleScheduleJobs}
-                  className="bg-amber-500 hover:bg-amber-600 text-white py-3 px-6 rounded-lg font-semibold transition"
+                  className={`bg-amber-500 hover:bg-amber-600 text-white py-3 px-6 rounded-lg font-semibold transition ${
+                    loading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
-                  Schedule Jobs
+                  {loading ? "Processing..." : "Schedule Jobs"}
                 </button>
               </div>
             </>
