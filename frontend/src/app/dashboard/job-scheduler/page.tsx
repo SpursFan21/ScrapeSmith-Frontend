@@ -73,68 +73,75 @@ const JobSchedulerPage: React.FC = () => {
   };
 
 
-const handleScheduleJobs = async () => {
-  const user = accessToken ? decodeToken(accessToken) : null;
-  const jobCount = jobs.length;
+  const handleScheduleJobs = async () => {
+    if (loading) return; // Prevent double submission
+    setLoading(true);
 
-  if (!user || !accessToken) {
-    alert("You must be logged in.");
-    return;
-  }
+    const user = accessToken ? decodeToken(accessToken) : null;
+    const jobCount = jobs.length;
 
-  if (jobs.some(job => !job.url || !job.analysisType || !job.runAt)) {
-    alert("Please fill in all required fields for each job.");
-    return;
-  }
-
-  if (balance !== null && jobCount > balance) {
-    setShowTopUpPrompt(true);
-    return;
-  }
-
-  const jobDataArray = jobs.map(job => ({
-    ...job,
-    userId: user.sub,
-    runAt: new Date(job.runAt).toISOString(),
-    customScript: job.analysisType === "Custom Analysis" ? customScript : undefined,
-  }));
-
-  setLoading(true); // start loading
-
-  try {
-    // Step 1: Deduct balance (payment)
-    const paymentResponse = await api.post("/payment/schedule", {
-      amount: jobCount,
-    });
-
-    if (paymentResponse.status !== 200) {
-      toast.error("Payment processing failed.");
+    if (!user || !accessToken) {
+      alert("You must be logged in.");
+      setLoading(false);
       return;
     }
 
-    // Step 2: Schedule jobs
-    const jobResponse = await api.post("/job/api/schedule", jobDataArray);
-
-    if (jobResponse.status === 200) {
-      toast.success("Jobs scheduled successfully!");
-      dispatch(fetchForgeBalance()); // refresh updated balance
-      setSuccessMessage(true);
-
-      // optional: clear form
-      setJobs([{ url: "", analysisType: "", customScript: "", runAt: "", customExplanation: "" }]);
-      setCustomScript("");
-      setCustomExplanation("");
-    } else {
-      toast.error("Job scheduling failed.");
+    if (jobs.some(job => !job.url || !job.analysisType || !job.runAt)) {
+      alert("Please fill in all required fields for each job.");
+      setLoading(false);
+      return;
     }
-  } catch (err) {
-    console.error("Error in scheduling process:", err);
-    toast.error("An error occurred. Please try again.");
-  } finally {
-    setLoading(false); // always stop loading
-  }
-};
 
+    if (balance !== null && jobCount > balance) {
+      setShowTopUpPrompt(true);
+      setLoading(false);
+      return;
+    }
+
+    const jobDataArray = jobs.map(job => ({
+      ...job,
+      userId: user.sub,
+      runAt: new Date(job.runAt).toISOString(),
+      customScript: job.analysisType === "Custom Analysis" ? customScript : undefined,
+    }));
+
+    try {
+      const paymentResponse = await api.post("/payment/schedule", {
+        amount: jobCount,
+      });
+
+      if (paymentResponse.status !== 200) {
+        toast.error("Payment processing failed.");
+        return;
+      }
+
+      const jobResponse = await api.post("/job/api/schedule", jobDataArray);
+
+      if (jobResponse.status === 200) {
+        toast.success("Jobs scheduled successfully!");
+        dispatch(fetchForgeBalance());
+        setSuccessMessage(true);
+        setJobs([{ url: "", analysisType: "", customScript: "", runAt: "", customExplanation: "" }]);
+        setCustomScript("");
+        setCustomExplanation("");
+      } else {
+        toast.error("Job scheduling failed.");
+      }
+    } catch (err) {
+      console.error("Error in scheduling process:", err);
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
+useEffect(() => {
+  if (accessToken) {
+    dispatch(fetchForgeBalance());
+  }
+}, [accessToken, dispatch]);
 
 
 

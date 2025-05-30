@@ -2,6 +2,7 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api from '@/app/api/axios';
+import { RootState } from './store'; // needed to get state in thunk
 
 interface ForgeBalanceState {
   balance: number | null;
@@ -15,18 +16,24 @@ const initialState: ForgeBalanceState = {
   error: null,
 };
 
+// Hardened thunk with accessToken check
 export const fetchForgeBalance = createAsyncThunk<
-  number, // return type
-  void,   // thunk arg
-  { rejectValue: string }
+  number,                 // return type
+  void,                   // argument type
+  { state: RootState; rejectValue: string } // extra type config
 >(
   'forgeBalance/fetchBalance',
-  async (_, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
+    const token = getState().auth.accessToken;
+    if (!token) {
+      return rejectWithValue('User not authenticated');
+    }
+
     try {
       const res = await api.get('/payment/balance');
       return res.data.balance;
     } catch (err: any) {
-      console.error(" Failed to fetch balance:", err);
+      console.error("Failed to fetch balance:", err);
       return rejectWithValue('Failed to fetch balance');
     }
   }
