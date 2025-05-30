@@ -13,7 +13,6 @@ import { useAppDispatch } from "@/redux/store";
 import api from "@/app/api/axios";
 import { toast } from "react-hot-toast";
 
-
 const analysisOptions = [
   { name: "Sentiment Analysis", description: "Analyze text sentiment" },
   { name: "Keyword Extraction", description: "Extract key phrases and words" },
@@ -44,16 +43,15 @@ const JobSchedulerPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [customScript, setCustomScript] = useState("");
   const [customExplanation, setCustomExplanation] = useState("");
-  const [successMessage, setSuccessMessage] = useState(false);
+  const [recentlyScheduled, setRecentlyScheduled] = useState(false);
   const router = useRouter();
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   const balance = useSelector((state: RootState) => state.forgeBalance.balance);
   const dispatch = useAppDispatch();
   const [showTopUpPrompt, setShowTopUpPrompt] = useState(false);
-  const jobCost = 1; // Cost per job in Forge Balance
+  const jobCost = 1;
   const totalCost = jobs.length * jobCost;
   const [loading, setLoading] = useState(false);
-
 
   const handleAddJob = () => {
     setJobs([...jobs, { url: "", analysisType: "", customScript: "", runAt: "", customExplanation: "" }]);
@@ -72,9 +70,8 @@ const JobSchedulerPage: React.FC = () => {
     }
   };
 
-
   const handleScheduleJobs = async () => {
-    if (loading) return; // Prevent double submission
+    if (loading) return;
     setLoading(true);
 
     const user = accessToken ? decodeToken(accessToken) : null;
@@ -105,49 +102,47 @@ const JobSchedulerPage: React.FC = () => {
       customScript: job.analysisType === "Custom Analysis" ? customScript : undefined,
     }));
 
-    try {
-      const paymentResponse = await api.post("/payment/schedule", {
-        amount: jobCount,
-      });
 
-      if (paymentResponse.status !== 200) {
+    try {
+      const paymentResponse = await api.post("/payment/schedule", { amount: jobCount });
+      if (paymentResponse.status < 200 || paymentResponse.status >= 300) {
         toast.error("Payment processing failed.");
+        setLoading(false); // This is important to avoid freezing the UI
         return;
       }
 
-      const jobResponse = await api.post("/job/api/schedule", jobDataArray);
 
-      if (jobResponse.status === 200) {
+      const jobResponse = await api.post("/job/api/schedule", jobDataArray);
+      console.log("Job scheduling response:", jobResponse.status, jobResponse.data);
+
+      // Accept any 2xx status as success
+      if (jobResponse.status >= 200 && jobResponse.status < 300) {
         toast.success("Jobs scheduled successfully!");
         dispatch(fetchForgeBalance());
-        setSuccessMessage(true);
+
+        // Reset form
         setJobs([{ url: "", analysisType: "", customScript: "", runAt: "", customExplanation: "" }]);
         setCustomScript("");
         setCustomExplanation("");
+        setRecentlyScheduled(true);
       } else {
-        toast.error("Job scheduling failed.");
+        toast.error(`Job scheduling failed (status ${jobResponse.status}).`);
       }
-    } catch (err) {
-      console.error("Error in scheduling process:", err);
+    } catch (err: any) {
+      console.error("Error in scheduling process:", err.response?.data || err.message);
       toast.error("An error occurred. Please try again.");
-    } finally {
-      setLoading(false);
     }
-  };
-
-
-
-useEffect(() => {
-  if (accessToken) {
-    dispatch(fetchForgeBalance());
   }
-}, [accessToken, dispatch]);
 
 
+  useEffect(() => {
+    if (accessToken) {
+      dispatch(fetchForgeBalance());
+    }
+  }, [accessToken, dispatch]);
 
   return (
     <ProtectedRoute>
-
       <Transition show={showTopUpPrompt} as={Fragment}>
         <Dialog onClose={() => setShowTopUpPrompt(false)} className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
@@ -158,39 +153,27 @@ useEffect(() => {
                 You need <strong>{totalCost}</strong> Forge Balance to schedule {jobs.length} job(s), but you only have <strong>{balance}</strong>.
               </p>
               <div className="flex justify-end gap-3">
-                <button onClick={() => setShowTopUpPrompt(false)} className="bg-gray-700 px-4 py-2 rounded hover:bg-gray-600">
-                  Cancel
-                </button>
-                <button onClick={() => router.push("/dashboard/forge-balance")} className="bg-amber-600 px-4 py-2 rounded hover:bg-amber-700">
-                  Top Up Now
-                </button>
+                <button onClick={() => setShowTopUpPrompt(false)} className="bg-gray-700 px-4 py-2 rounded hover:bg-gray-600">Cancel</button>
+                <button onClick={() => router.push("/dashboard/forge-balance")} className="bg-amber-600 px-4 py-2 rounded hover:bg-amber-700">Top Up Now</button>
               </div>
             </div>
           </div>
         </Dialog>
       </Transition>
 
-
       <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-b from-gray-800 to-gray-900">
         <div className="w-full max-w-4xl p-10 bg-gradient-to-r from-gray-800 to-gray-700 border border-gray-600 rounded-2xl shadow-2xl">
           <h1 className="text-4xl font-extrabold text-center text-white mb-8">Job Scheduler</h1>
           <p className="text-center text-lg text-gray-300 mb-6">Schedule multiple scrape jobs with custom analysis types</p>
 
-          {successMessage && (
-            <div className="bg-green-600 text-white p-4 rounded-lg mb-6 text-center">
-              Job(s) scheduled successfully.
-              <div className="mt-4">
-                <button
-                  onClick={() => router.push("/dashboard")}
-                  className="px-6 py-2 bg-white text-green-700 font-semibold rounded hover:bg-gray-100"
-                >
-                  Return to Dashboard
-                </button>
-              </div>
+          {recentlyScheduled && (
+            <div className="bg-green-600 text-white p-4 rounded-lg mb-6 text-center flex justify-between items-center">
+              <span>Jobs scheduled successfully!</span>
+              <button onClick={() => setRecentlyScheduled(false)} className="bg-white text-green-700 font-semibold px-4 py-1 rounded hover:bg-gray-100 ml-4">Schedule More</button>
             </div>
           )}
 
-          {!successMessage && jobs.map((job, index) => (
+          {jobs.map((job, index) => (
             <div key={index} className="mb-8">
               <h3 className="text-xl font-semibold text-gray-200 mb-4">Job {index + 1}</h3>
               <div className="mb-4">
@@ -210,7 +193,11 @@ useEffect(() => {
                     <button
                       key={option.name}
                       onClick={() => handleSelectAnalysisType(index, option.name)}
-                      className={`p-5 rounded-xl shadow-md transition-all duration-300 ${job.analysisType === option.name ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white" : "bg-gradient-to-r from-gray-600 to-gray-700 text-gray-200"}`}
+                      className={`p-5 rounded-xl shadow-md transition-all duration-300 ${
+                        job.analysisType === option.name
+                          ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white"
+                          : "bg-gradient-to-r from-gray-600 to-gray-700 text-gray-200"
+                      }`}
                     >
                       <h4 className="text-xl font-medium">{option.name}</h4>
                       <p className="text-sm">{option.description}</p>
@@ -245,31 +232,26 @@ useEffect(() => {
             Jobs Scheduled: {jobs.length} × {jobCost} = <span className="text-white font-bold">{totalCost}</span>
           </div>
 
+          <div className="mt-6 text-center">
+            <button
+              onClick={handleAddJob}
+              className="bg-amber-500 hover:bg-amber-600 text-white py-3 px-6 rounded-lg font-semibold transition"
+            >
+              Add Another Job
+            </button>
+          </div>
 
-
-          {!successMessage && (
-            <>
-              <div className="mt-6 text-center">
-                <button
-                  onClick={handleAddJob}
-                  className="bg-amber-500 hover:bg-amber-600 text-white py-3 px-6 rounded-lg font-semibold transition"
-                >
-                  Add Another Job
-                </button>
-              </div>
-              <div className="mt-8 text-center">
-                <button
-                  disabled={loading}
-                  onClick={handleScheduleJobs}
-                  className={`bg-amber-500 hover:bg-amber-600 text-white py-3 px-6 rounded-lg font-semibold transition ${
-                    loading ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                >
-                  {loading ? "Processing..." : "Schedule Jobs"}
-                </button>
-              </div>
-            </>
-          )}
+          <div className="mt-8 text-center">
+            <button
+              disabled={loading}
+              onClick={handleScheduleJobs}
+              className={`bg-amber-500 hover:bg-amber-600 text-white py-3 px-6 rounded-lg font-semibold transition ${
+                loading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              {loading ? "Processing..." : "Schedule Jobs"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -292,12 +274,8 @@ useEffect(() => {
                 className="w-full p-3 rounded bg-gray-900 text-white border border-gray-600"
               />
               <div className="mt-6 flex justify-end gap-3">
-                <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">
-                  Cancel
-                </button>
-                <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700">
-                  Save
-                </button>
+                <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">Cancel</button>
+                <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700">Save</button>
               </div>
             </div>
           </div>
@@ -308,3 +286,4 @@ useEffect(() => {
 };
 
 export default JobSchedulerPage;
+
