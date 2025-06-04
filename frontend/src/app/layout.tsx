@@ -6,6 +6,8 @@ import Navbar from "./_components/NavBar";
 import Footer from "./_components/Footer";
 import Providers from "./providers";
 import AuthReset from "./_components/AuthReset";
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from '@vercel/analytics/next';
 
 const roboto = Roboto({
   weight: ["400", "500", "700"],
@@ -31,6 +33,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="flex-grow">{children}</main>
           <Footer />
         </Providers>
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
