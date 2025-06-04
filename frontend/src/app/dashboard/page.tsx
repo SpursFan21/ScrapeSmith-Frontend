@@ -22,7 +22,7 @@ interface DashboardOption {
 const Dashboard: React.FC = () => {
   const [isClient, setIsClient] = useState(false);
 
-  //  Prevent hydration mismatch or early Redux access
+  //  Prevent hydration mismatch or early Redux access ss
   useEffect(() => {
     setIsClient(true);
   }, []);
