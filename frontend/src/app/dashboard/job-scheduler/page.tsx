@@ -13,6 +13,7 @@ import { useAppDispatch } from "@/redux/store";
 import api from "@/app/api/axios";
 import { toast } from "react-hot-toast";
 
+
 const analysisOptions = [
   { name: "Sentiment Analysis", description: "Analyze text sentiment" },
   { name: "Keyword Extraction", description: "Extract key phrases and words" },
@@ -52,6 +53,8 @@ const JobSchedulerPage: React.FC = () => {
   const jobCost = 1;
   const totalCost = jobs.length * jobCost;
   const [loading, setLoading] = useState(false);
+  const [activeJobIndex, setActiveJobIndex] = useState<number | null>(null);
+
 
   const handleAddJob = () => {
     setJobs([...jobs, { url: "", analysisType: "", customScript: "", runAt: "", customExplanation: "" }]);
@@ -66,9 +69,11 @@ const JobSchedulerPage: React.FC = () => {
   const handleSelectAnalysisType = (index: number, analysis: string) => {
     handleChangeJob(index, "analysisType", analysis);
     if (analysis === "Custom Analysis") {
+      setActiveJobIndex(index);
       setIsModalOpen(true);
     }
   };
+
 
   const handleScheduleJobs = async () => {
     if (loading) return;
@@ -124,13 +129,16 @@ const JobSchedulerPage: React.FC = () => {
         setJobs([{ url: "", analysisType: "", customScript: "", runAt: "", customExplanation: "" }]);
         setCustomScript("");
         setCustomExplanation("");
+        setActiveJobIndex(null);
         setRecentlyScheduled(true);
+        setLoading(false);
       } else {
         toast.error(`Job scheduling failed (status ${jobResponse.status}).`);
       }
     } catch (err: any) {
       console.error("Error in scheduling process:", err.response?.data || err.message);
       toast.error("An error occurred. Please try again.");
+      setLoading(false);
     }
   }
 
@@ -214,17 +222,7 @@ const JobSchedulerPage: React.FC = () => {
                   className="w-full p-3 rounded bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>
-              {job.analysisType === "Custom Analysis" && (
-                <div className="mb-4">
-                  <label className="block text-lg text-gray-200">Custom Script</label>
-                  <textarea
-                    value={job.customScript}
-                    onChange={(e) => handleChangeJob(index, "customScript", e.target.value)}
-                    placeholder="Paste your custom script here"
-                    className="w-full p-3 rounded bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-              )}
+
             </div>
           ))}
 
@@ -274,9 +272,26 @@ const JobSchedulerPage: React.FC = () => {
                 className="w-full p-3 rounded bg-gray-900 text-white border border-gray-600"
               />
               <div className="mt-6 flex justify-end gap-3">
-                <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">Cancel</button>
-                <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700">Save</button>
-              </div>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (activeJobIndex !== null) {
+                    handleChangeJob(activeJobIndex, "customScript", customScript);
+                    handleChangeJob(activeJobIndex, "customExplanation", customExplanation);
+                  }
+                  setIsModalOpen(false);
+                }}
+                className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700"
+              >
+                Save
+              </button>
+            </div>
+
             </div>
           </div>
         </Dialog>
