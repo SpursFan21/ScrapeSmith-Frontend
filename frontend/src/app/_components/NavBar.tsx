@@ -15,8 +15,10 @@ import api from "../api/axios";
 const Navbar: React.FC = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+  const isAdmin = useSelector((state: RootState) => state.auth.isAdmin);
   const balance = useSelector((state: RootState) => state.forgeBalance.balance);
 
   useEffect(() => {
@@ -69,11 +71,19 @@ const Navbar: React.FC = () => {
               <Link href="/account" className="text-white hover:text-amber-400">
                 Account
               </Link>
+
+              {isAdmin && (
+                <Link href="/admin-dashboard" className="text-white hover:text-amber-400">
+                  Admin Dashboard
+                </Link>
+              )}
+
               {balance !== null && (
                 <span className="text-amber-400 font-bold text-sm">
                   {balance} Jobs
                 </span>
               )}
+
               <button
                 onClick={handleLogout}
                 className="text-white hover:text-amber-400"
