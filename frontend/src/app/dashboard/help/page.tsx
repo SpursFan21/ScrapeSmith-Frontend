@@ -5,16 +5,18 @@
 import React, { useEffect, useState } from "react";
 import api from "@/app/api/axios";
 import Toast from "@/app/_components/Toast";
+import Link from "next/link";
 
 
 interface Ticket {
-  _id: string;
+  id: string;
   subject: string;
   message: string;
   status: string;
   responses: { fromAdmin: boolean; message: string; timestamp: string }[];
   createdAt: string;
 }
+
 
 const HelpPage: React.FC = () => {
   const [subject, setSubject] = useState("");
@@ -23,43 +25,54 @@ const HelpPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [openDocs, setOpenDocs] = useState<string | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
-
+  const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
 
   const fetchTickets = async () => {
-  try {
-    const res = await api.get("/users/tickets");
-    setTickets(res.data);
-  } catch (err) {
-    console.error("Failed to fetch tickets:", err);
-    setTickets([]);
-  }
-};
+    try {
+      const res = await api.get("/users/tickets");
+      const sorted = res.data.sort((a: Ticket, b: Ticket) =>
+        a.status === "open" && b.status === "closed" ? -1 : 1
+      );
+      setTickets(sorted);
+    } catch (err) {
+      console.error("Failed to fetch tickets:", err);
+      setTickets([]);
+    }
+  };
 
+  useEffect(() => {
+    fetchTickets();
+  }, []);
 
-useEffect(() => {
-  fetchTickets();
-}, []);
+  useEffect(() => {
+    if (tickets.length) console.log("🎫 tickets from API:", tickets);
+  }, [tickets]);
 
-const handleSubmit = async () => {
-  if (!subject || !message) return;
-  setLoading(true);
-  try {
-    await api.post("/users/tickets", { subject, message });
-    setSubject("");
-    setMessage("");
-    setToastVisible(true);
-    await fetchTickets();
-  } catch (err) {
-    console.error("Failed to submit ticket:", err);
-    alert("Failed to submit ticket. Try again.");
-  } finally {
-    setLoading(false);
-  }
-};
-
+  const handleSubmit = async () => {
+    if (!subject || !message) return;
+    setLoading(true);
+    try {
+      await api.post("/users/tickets", { subject, message });
+      setSubject("");
+      setMessage("");
+      setToastVisible(true);
+      await fetchTickets();
+    } catch (err) {
+      console.error("Failed to submit ticket:", err);
+      alert("Failed to submit ticket. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleDoc = (id: string) => {
     setOpenDocs(openDocs === id ? null : id);
+  };
+
+  const truncateMessage = (text: string, id: string) => {
+    const isExpanded = expandedTicketId === id;
+    if (isExpanded || text.length <= 140) return text;
+    return `${text.slice(0, 140)}...`;
   };
 
   return (
@@ -140,9 +153,7 @@ const handleSubmit = async () => {
 
         {/* Ticket Submission */}
         <div className="mb-12">
-          <h2 className="text-xl font-semibold text-amber-400 mb-2">
-            Submit a Support Ticket
-          </h2>
+          <h2 className="text-xl font-semibold text-amber-400 mb-2">Submit a Support Ticket</h2>
           <input
             className="w-full p-2 mb-2 bg-gray-800 border border-gray-700 rounded"
             placeholder="Subject"
@@ -165,50 +176,82 @@ const handleSubmit = async () => {
           </button>
         </div>
 
-        {/* Existing Tickets */}
+       {/* Existing Tickets */}
         <div>
-          <h2 className="text-xl font-semibold text-amber-400 mb-4">
-            Your Tickets
-          </h2>
+          <h2 className="text-xl font-semibold text-amber-400 mb-4">Your Tickets</h2>
           {tickets.length === 0 ? (
             <p className="text-gray-400 text-sm">No tickets submitted yet.</p>
           ) : (
-            tickets.map((t) => (
-              <div
-                key={t._id}
-                className="mb-6 p-4 bg-gray-800 rounded border border-gray-700 hover:border-teal-500 transition"
-              >
-                <p className="font-bold text-teal-300 mb-1">{t.subject}</p>
-                <p className="text-sm text-gray-300 mb-1">{t.message}</p>
-                <p className="text-xs text-gray-500">Status: {t.status}</p>
+            tickets.map((t) => {
+              const isClosed = t.status.toLowerCase() === "closed";
+              const isExpanded = expandedTicketId === t.id;
 
-                {t.responses.length > 0 && (
-                  <div className="mt-3 space-y-1">
-                    {t.responses.map((r, idx) => (
-                      <div key={idx} className="text-sm">
-                        <span className={r.fromAdmin ? "text-amber-400" : "text-gray-300"}>
-                          {r.fromAdmin ? "Admin:" : "You:"}
-                        </span>{" "}
-                        {r.message}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
+              return (
+                <Link
+                  key={t.id}
+                  href={`/dashboard/help/tickets/${t.id}`}
+                  className={`block mb-6 p-4 rounded border transition ${
+                    isClosed
+                      ? "bg-gray-900 border-red-700 hover:border-red-500"
+                      : "bg-gray-800 border-green-700 hover:border-green-500"
+                  }`}
+                >
+                  <div className="font-bold mb-1">{t.subject}</div>
+                  <p className="text-sm text-gray-300 mb-1">
+                    {truncateMessage(t.message, t.id)}{" "}
+                    {t.message.length > 140 && (
+                      <span
+                        className="text-blue-400 text-xs underline cursor-pointer"
+                        onClick={(e) => {
+                          e.preventDefault(); // Prevents link navigation
+                          setExpandedTicketId(isExpanded ? null : t.id);
+                        }}
+                      >
+                        {isExpanded ? "Show less" : "Read more"}
+                      </span>
+                    )}
+                  </p>
+                  <span
+                    className={`inline-block text-xs font-semibold px-2 py-1 rounded-full ${
+                      isClosed ? "bg-red-700 text-red-200" : "bg-green-700 text-green-200"
+                    }`}
+                  >
+                    {t.status.toUpperCase()}
+                  </span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Submitted: {new Date(t.createdAt).toLocaleString()}
+                  </p>
+
+                  {t.responses.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      {t.responses.map((r, idx) => (
+                        <div key={idx} className="text-sm">
+                          <span className={r.fromAdmin ? "text-amber-400" : "text-gray-300"}>
+                            {r.fromAdmin ? "Admin:" : "You:"}
+                          </span>{" "}
+                          {r.message}
+                          <p className="text-xs text-gray-500 ml-4">
+                            {new Date(r.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Link>
+              );
+            })
           )}
         </div>
+
       </div>
+
       <Toast
         show={toastVisible}
         message="Ticket submitted successfully!"
         onClose={() => setToastVisible(false)}
       />
-
     </div>
-    
   );
-  
 };
 
 export default HelpPage;
