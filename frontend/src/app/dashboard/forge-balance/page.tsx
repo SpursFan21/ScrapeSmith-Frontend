@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useEffect, useState, Fragment } from 'react';
+import React, { useEffect, useState, Fragment } from 'react';
 import { useSelector } from 'react-redux';
 import { Dialog, Transition } from '@headlessui/react';
 import { CardElement, Elements } from '@stripe/react-stripe-js';
@@ -10,9 +10,10 @@ import { loadStripe } from '@stripe/stripe-js';
 import { fetchForgeBalance } from '@/redux/forgeBalanceSlice';
 import { RootState, useAppDispatch } from '@/redux/store';
 import api from '@/app/api/axios';
+// Import react-spring for animated counter
+import { useSpring, animated } from 'react-spring';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
-
 const topUpOptions = [
   { amount: 10, price: 10 },
   { amount: 25, price: 24 },
@@ -25,7 +26,9 @@ const topUpOptions = [
 
 export default function ForgeBalancePage() {
   const dispatch = useAppDispatch();
-  const balance = useSelector((state: RootState) => state.forgeBalance.balance);
+  const balanceRaw = useSelector((state: RootState) => state.forgeBalance.balance);
+  const balanceValue = balanceRaw ?? 0;
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -37,6 +40,14 @@ export default function ForgeBalancePage() {
   useEffect(() => {
     dispatch(fetchForgeBalance());
   }, [dispatch]);
+
+  // Animated counter: whenever balanceValue changes, animate from 0 to new value
+  const { val } = useSpring({
+    from: { val: 0 },
+    to: { val: balanceValue },
+    reset: true,
+    config: { tension: 170, friction: 26 },
+  });
 
   const handleTopUpClick = (amount: number) => {
     setSelectedAmount(amount);
@@ -50,14 +61,10 @@ export default function ForgeBalancePage() {
     if (!selectedAmount || !voucher) return;
     try {
       setLoading(true);
-      await api.post('/payment/balance/top-up/voucher', {
-        code: voucher,
-        amount: selectedAmount,
-      });
+      await api.post('/payment/balance/top-up/voucher', { code: voucher, amount: selectedAmount });
       dispatch(fetchForgeBalance());
       resetDialogs();
-    } catch (err) {
-      console.error('Failed to redeem voucher:', err);
+    } catch {
       setError('Invalid voucher code');
     } finally {
       setLoading(false);
@@ -70,28 +77,35 @@ export default function ForgeBalancePage() {
     setVoucherMode(false);
     setShowStripeForm(false);
     setShowPaymentChoice(false);
+    setError(null);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-gray-800 text-white p-8 font-sans">
-      <div className="max-w-4xl mx-auto text-center">
-        <h1 className="text-4xl font-black text-amber-500 mb-8 drop-shadow-lg tracking-widest uppercase">
-          Forge Balance
-        </h1>
+    <div className="min-h-screen overflow-hidden bg-gradient-to-br from-black via-zinc-900 to-gray-800 text-white p-8 font-sans flex items-center justify-center">
+      {/* Container with border around balance and options */}
+      <div className="w-full max-w-4xl bg-gray-900 bg-opacity-90 border border-gray-700 rounded-2xl p-8 space-y-8">
+        {/* Page Title */}
+        <div className="text-center">
+          <h1 className="text-4xl font-black text-amber-500 tracking-widest uppercase">
+            Forge Balance
+          </h1>
+        </div>
 
-        <div className="bg-gradient-to-br from-gray-950 to-zinc-800 border border-amber-700 rounded-xl p-6 shadow-2xl mb-10">
+        {/* Current Balance Display with animated counter */}
+        <div className="bg-gradient-to-br from-gray-950 to-zinc-800 border border-amber-700 rounded-xl p-6 shadow-2xl text-center">
           <p className="text-xl text-gray-400 mb-2 tracking-wide">Current Balance</p>
-          <div className="text-5xl font-mono font-extrabold text-amber-400">
-            {balance !== null ? balance : '...'}
-          </div>
+          <animated.div className="text-5xl font-mono font-extrabold text-amber-400">
+            {val.to((v: number) => v.toFixed(0))}
+          </animated.div>
           {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
         </div>
 
-        <div className="mb-12">
-          <h2 className="text-2xl font-semibold text-white mb-6 tracking-wide">
+        {/* Top-Up Options Grid */}
+        <div>
+          <h2 className="text-2xl font-semibold text-white mb-6 tracking-wide text-center">
             Top-Up Options
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {topUpOptions.map((option, idx) => (
               <button
                 key={option.amount}
@@ -112,11 +126,13 @@ export default function ForgeBalancePage() {
         </div>
       </div>
 
-      <Transition show={showPaymentChoice} as={Fragment}>
+      {/* Modal Dialogs for Payment */}
+      <Transition appear show={showPaymentChoice} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={resetDialogs}>
           <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm" />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-gray-900 border border-amber-600 p-6 rounded-xl max-w-md w-full shadow-2xl">
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="bg-gray-900 border border-amber-600 p-6 rounded-xl max-w-md w-full shadow-2xl">
+              {/* Choice Screen */}
               {!voucherMode && !showStripeForm && (
                 <>
                   <Dialog.Title className="text-xl text-amber-400 mb-4 font-semibold">
@@ -139,6 +155,7 @@ export default function ForgeBalancePage() {
                 </>
               )}
 
+              {/* Voucher Entry Screen */}
               {voucherMode && (
                 <>
                   <Dialog.Title className="text-xl text-amber-400 mb-4 font-semibold">
@@ -151,16 +168,13 @@ export default function ForgeBalancePage() {
                     className="w-full p-3 rounded bg-gray-800 border border-gray-600 text-white focus:ring-amber-500"
                   />
                   <div className="mt-4 flex justify-between">
-                    <button
-                      onClick={resetDialogs}
-                      className="text-gray-400 hover:text-white"
-                    >
+                    <button onClick={resetDialogs} className="text-gray-400 hover:text-white">
                       Cancel
                     </button>
                     <button
                       onClick={applyVoucher}
                       disabled={loading}
-                      className="px-4 py-2 bg-amber-600 hover:bg-amber-700 rounded text-white font-medium"
+                      className="px-4 py-2 bg-amber-600 hover:bg-amber-700 rounded text-white font-medium disabled:opacity-50"
                     >
                       {loading ? 'Applying...' : 'Apply'}
                     </button>
@@ -168,24 +182,22 @@ export default function ForgeBalancePage() {
                 </>
               )}
 
+              {/* Stripe Form Screen */}
               {showStripeForm && (
                 <Elements stripe={stripePromise}>
-                  <div>
+                  <>
                     <Dialog.Title className="text-xl text-amber-400 mb-4 font-semibold">
                       Enter Card Details
                     </Dialog.Title>
                     <div className="bg-gray-800 p-4 rounded mb-4">
-                      <CardElement options={{
-                        style: {
-                          base: {
-                            color: '#fff',
-                            fontSize: '16px',
+                      <CardElement
+                        options={{
+                          style: {
+                            base: { color: '#fff', fontSize: '16px' },
+                            invalid: { color: '#f87171' },
                           },
-                          invalid: {
-                            color: '#f87171',
-                          }
-                        }
-                      }} />
+                        }}
+                      />
                     </div>
                     <div className="flex justify-between">
                       <button onClick={resetDialogs} className="text-gray-400 hover:text-white">
@@ -197,15 +209,15 @@ export default function ForgeBalancePage() {
                           dispatch(fetchForgeBalance());
                           resetDialogs();
                         }}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold"
                       >
                         Complete Payment
                       </button>
                     </div>
-                  </div>
+                  </>
                 </Elements>
               )}
-            </div>
+            </Dialog.Panel>
           </div>
         </Dialog>
       </Transition>
