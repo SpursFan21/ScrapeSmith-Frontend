@@ -103,7 +103,7 @@ const Dashboard: React.FC = () => {
     {
       title: "Subscription Manager",
       description: "Manage your subscription details and billing history.",
-      href: "/dashboard/subscription",
+      href: "/dashboard/subscriptions",
       bgColor: "bg-lime-500",
       icon: <FiCreditCard size={24} />,
     },
