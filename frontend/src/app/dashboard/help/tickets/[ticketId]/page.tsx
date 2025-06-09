@@ -9,7 +9,8 @@ import Toast from '@/app/_components/Toast';
 import ReactMarkdown from 'react-markdown';
 
 interface TicketResponse {
-  fromAdmin: boolean;
+  fromAdmin?: boolean;
+  adminId?: string;
   message: string;
   timestamp: string;
 }
@@ -28,8 +29,7 @@ export default function TicketThreadPage() {
   const ticketId = Array.isArray(params?.ticketId)
     ? params.ticketId[0]
     : params?.ticketId;
-  console.log("Ticket ID from URL:", ticketId);
-
+  console.log('Ticket ID from URL:', ticketId);
 
   const router = useRouter();
 
@@ -59,7 +59,7 @@ export default function TicketThreadPage() {
       await api.post(`/users/tickets/${ticketId}/reply`, { message: reply });
       setReply('');
       setToastVisible(true);
-      await fetchTicket(); // Refresh thread
+      await fetchTicket();
     } catch (err) {
       console.error('Failed to send reply:', err);
     } finally {
@@ -70,6 +70,14 @@ export default function TicketThreadPage() {
   if (!ticket) {
     return <div className="p-10 text-white">Loading ticket...</div>;
   }
+
+  // Normalize responses to include a single isAdmin flag
+  const normalizedResponses = ticket.responses.map(r => ({
+    ...r,
+    isAdmin: typeof r.fromAdmin === 'boolean'
+      ? r.fromAdmin
+      : Boolean(r.adminId),
+  }));
 
   const isClosed = ticket.status === 'closed';
 
@@ -101,10 +109,10 @@ export default function TicketThreadPage() {
         <p className="mb-6 text-gray-300">{ticket.message}</p>
 
         <div className="space-y-4 mb-6">
-          {ticket.responses.map((r, idx) => (
+          {normalizedResponses.map((r, idx) => (
             <div key={idx} className="bg-gray-800 p-3 rounded text-sm">
-              <p className="font-semibold text-amber-300">
-                {r.fromAdmin ? 'Admin' : 'You'}
+              <p className={`font-semibold ${r.isAdmin ? 'text-amber-400' : 'text-gray-300'}`}> 
+                {r.isAdmin ? 'Admin' : 'You'}
               </p>
               <div className="prose prose-invert text-sm max-w-none">
                 <ReactMarkdown>{r.message}</ReactMarkdown>
@@ -120,7 +128,7 @@ export default function TicketThreadPage() {
           <div>
             <textarea
               value={reply}
-              onChange={(e) => setReply(e.target.value)}
+              onChange={e => setReply(e.target.value)}
               placeholder="Type your reply... (supports **Markdown**)"
               rows={4}
               className="w-full p-3 bg-gray-800 border border-gray-600 rounded text-sm mb-2"

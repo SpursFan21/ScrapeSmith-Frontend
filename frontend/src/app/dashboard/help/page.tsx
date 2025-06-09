@@ -7,16 +7,22 @@ import api from "@/app/api/axios";
 import Toast from "@/app/_components/Toast";
 import Link from "next/link";
 
+// A ticket response may come with either `fromAdmin` or `adminId`
+interface TicketResponse {
+  fromAdmin?: boolean;
+  adminId?: string;
+  message: string;
+  timestamp: string;
+}
 
 interface Ticket {
   id: string;
   subject: string;
   message: string;
   status: string;
-  responses: { fromAdmin: boolean; message: string; timestamp: string }[];
+  responses: TicketResponse[];
   createdAt: string;
 }
-
 
 const HelpPage: React.FC = () => {
   const [subject, setSubject] = useState("");
@@ -29,13 +35,14 @@ const HelpPage: React.FC = () => {
 
   const fetchTickets = async () => {
     try {
-      const res = await api.get("/users/tickets");
-      const sorted = res.data.sort((a: Ticket, b: Ticket) =>
-        a.status === "open" && b.status === "closed" ? -1 : 1
+      const res = await api.get<Ticket[]>('/users/tickets');
+      // sort open before closed
+      const sorted = res.data.sort((a, b) =>
+        a.status === 'open' && b.status === 'closed' ? -1 : 1
       );
       setTickets(sorted);
     } catch (err) {
-      console.error("Failed to fetch tickets:", err);
+      console.error('Failed to fetch tickets:', err);
       setTickets([]);
     }
   };
@@ -45,21 +52,21 @@ const HelpPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (tickets.length) console.log("🎫 tickets from API:", tickets);
+    if (tickets.length) console.log('tickets from API:', tickets);
   }, [tickets]);
 
   const handleSubmit = async () => {
     if (!subject || !message) return;
     setLoading(true);
     try {
-      await api.post("/users/tickets", { subject, message });
-      setSubject("");
-      setMessage("");
+      await api.post('/users/tickets', { subject, message });
+      setSubject('');
+      setMessage('');
       setToastVisible(true);
       await fetchTickets();
-    } catch (err) {
-      console.error("Failed to submit ticket:", err);
-      alert("Failed to submit ticket. Try again.");
+    } catch {
+      console.error('Failed to submit ticket');
+      alert('Failed to submit ticket. Try again.');
     } finally {
       setLoading(false);
     }
@@ -77,7 +84,12 @@ const HelpPage: React.FC = () => {
 
   return (
     <div className="w-full flex justify-center px-4 bg-gradient-to-br from-gray-900 via-gray-950 to-black py-10 min-h-screen">
-      <div className="w-full max-w-3xl bg-gradient-to-br from-[#1f1f1f] to-[#2a2a2a] border border-gray-700 rounded-lg p-6 shadow-md shadow-black">
+    <div
+      className="w-full max-w-screen-lg 
+                 bg-gradient-to-br from-[#1f1f1f] to-[#2a2a2a]
+                 border border-gray-700 rounded-lg 
+                 p-6 shadow-md shadow-black"
+    >
         <h1 className="text-3xl font-bold text-center text-amber-500 mb-6 tracking-wide">
           Help & Documentation
         </h1>
@@ -87,7 +99,7 @@ const HelpPage: React.FC = () => {
           {[
             {
               id: "overview",
-              title: "📌 What is ScrapeSmith?",
+              title: "What is ScrapeSmith?",
               content: (
                 <ul className="list-disc ml-6 mt-2 space-y-1">
                   <li>Submit URLs to be scraped via a single scrape or job scheduler.</li>
@@ -99,7 +111,7 @@ const HelpPage: React.FC = () => {
             },
             {
               id: "jobs",
-              title: "⚙️ How do jobs work?",
+              title: "How do jobs work?",
               content: (
                 <ol className="list-decimal ml-6 mt-2 space-y-1">
                   <li><strong>Scrape:</strong> Fetch content via ScrapeNinja API.</li>
@@ -110,7 +122,7 @@ const HelpPage: React.FC = () => {
             },
             {
               id: "payments",
-              title: "💳 Payment & Forge Balance",
+              title: "Payment & Forge Balance",
               content: (
                 <ul className="list-disc ml-6 mt-2 space-y-1">
                   <li><strong>Stripe</strong> for one-time payments.</li>
@@ -121,7 +133,7 @@ const HelpPage: React.FC = () => {
             },
             {
               id: "ai",
-              title: "🧠 AI Analysis Types",
+              title: "AI Analysis Types",
               content: (
                 <ul className="list-disc ml-6 mt-2 space-y-1">
                   <li>Sentiment Analysis</li>
@@ -176,15 +188,23 @@ const HelpPage: React.FC = () => {
           </button>
         </div>
 
-       {/* Existing Tickets */}
+               {/* Existing Tickets */}
         <div>
           <h2 className="text-xl font-semibold text-amber-400 mb-4">Your Tickets</h2>
           {tickets.length === 0 ? (
             <p className="text-gray-400 text-sm">No tickets submitted yet.</p>
           ) : (
             tickets.map((t) => {
-              const isClosed = t.status.toLowerCase() === "closed";
+              const isClosed = t.status.toLowerCase() === 'closed';
               const isExpanded = expandedTicketId === t.id;
+
+              // normalize responses
+              const normalized = t.responses.map(r => ({
+                ...r,
+                isAdmin: typeof r.fromAdmin === 'boolean'
+                  ? r.fromAdmin
+                  : Boolean(r.adminId),
+              }));
 
               return (
                 <Link
@@ -192,28 +212,28 @@ const HelpPage: React.FC = () => {
                   href={`/dashboard/help/tickets/${t.id}`}
                   className={`block mb-6 p-4 rounded border transition ${
                     isClosed
-                      ? "bg-gray-900 border-red-700 hover:border-red-500"
-                      : "bg-gray-800 border-green-700 hover:border-green-500"
+                      ? 'bg-gray-900 border-red-700 hover:border-red-500'
+                      : 'bg-gray-800 border-green-700 hover:border-green-500'
                   }`}
                 >
                   <div className="font-bold mb-1">{t.subject}</div>
                   <p className="text-sm text-gray-300 mb-1">
-                    {truncateMessage(t.message, t.id)}{" "}
+                    {truncateMessage(t.message, t.id)}{' '}
                     {t.message.length > 140 && (
                       <span
                         className="text-blue-400 text-xs underline cursor-pointer"
                         onClick={(e) => {
-                          e.preventDefault(); // Prevents link navigation
+                          e.preventDefault();
                           setExpandedTicketId(isExpanded ? null : t.id);
                         }}
                       >
-                        {isExpanded ? "Show less" : "Read more"}
+                        {isExpanded ? 'Show less' : 'Read more'}
                       </span>
                     )}
                   </p>
                   <span
                     className={`inline-block text-xs font-semibold px-2 py-1 rounded-full ${
-                      isClosed ? "bg-red-700 text-red-200" : "bg-green-700 text-green-200"
+                      isClosed ? 'bg-red-700 text-red-200' : 'bg-green-700 text-green-200'
                     }`}
                   >
                     {t.status.toUpperCase()}
@@ -222,13 +242,13 @@ const HelpPage: React.FC = () => {
                     Submitted: {new Date(t.createdAt).toLocaleString()}
                   </p>
 
-                  {t.responses.length > 0 && (
+                  {normalized.length > 0 && (
                     <div className="mt-3 space-y-1">
-                      {t.responses.map((r, idx) => (
+                      {normalized.map((r, idx) => (
                         <div key={idx} className="text-sm">
-                          <span className={r.fromAdmin ? "text-amber-400" : "text-gray-300"}>
-                            {r.fromAdmin ? "Admin:" : "You:"}
-                          </span>{" "}
+                          <span className={r.isAdmin ? 'text-amber-400' : 'text-gray-300'}>
+                            {r.isAdmin ? 'Admin:' : 'You:'}
+                          </span>{' '}
                           {r.message}
                           <p className="text-xs text-gray-500 ml-4">
                             {new Date(r.timestamp).toLocaleString()}
@@ -242,7 +262,6 @@ const HelpPage: React.FC = () => {
             })
           )}
         </div>
-
       </div>
 
       <Toast
