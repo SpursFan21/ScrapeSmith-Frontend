@@ -9,45 +9,53 @@ import axios, {
 import { store } from '../../redux/store';
 import { updateAccessToken, clearCredentials } from '../../redux/authSlice';
 
+// derive API base URL from environment
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (process.env.NODE_ENV === 'development'
+    ? 'http://localhost:8000'
+    : 'https://api.yourproductiondomain.com');
+
+// axios instance for app calls
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: API_BASE,
+  headers: { 'Content-Type': 'application/json' },
 });
+
+// refresh endpoint
+const REFRESH_ENDPOINT = '/auth/refresh';
 
 // Refresh access token using refresh token
 async function refreshAccessToken(): Promise<string | null> {
   try {
-    const authState = store.getState().auth;
-    console.log("🔎 Access token from Redux:", authState.accessToken);
-    console.log("🔎 Refresh token from Redux:", authState.refreshToken);
+    const { accessToken, refreshToken } = store.getState().auth;
+    if (!refreshToken) throw new Error('No refresh token available');
 
-    if (!authState.refreshToken) throw new Error("No refresh token available");
+    const response = await axios.post(
+      `${API_BASE}${REFRESH_ENDPOINT}`,
+      { refresh_token: refreshToken }
+    );
 
-    const response = await axios.post('http://localhost:8000/auth/refresh', {
-      refresh_token: authState.refreshToken,
-    });
-
-    const newAccessToken = response.data.access_token;
-    if (!newAccessToken) throw new Error("No access token returned");
+    const newAccessToken: string = response.data.access_token;
+    if (!newAccessToken) throw new Error('No access token returned');
 
     store.dispatch(updateAccessToken(newAccessToken));
-    console.log("✅ Token refreshed:", newAccessToken);
     return newAccessToken;
   } catch (err) {
-    console.error("❌ Token refresh failed:", err);
+    console.error('Token refresh failed:', err);
     store.dispatch(clearCredentials());
     return null;
   }
 }
 
-// Request interceptor
+// Request interceptor to attach token
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const authEndpoints = ['/auth/login', '/auth/signup', '/auth/refresh'];
-    if (authEndpoints.some(path => config.url?.includes(path))) return config;
+    // skip auth endpoints
+    if (config.url?.startsWith('/auth/')) return config;
 
     let token = store.getState().auth.accessToken;
     if (!token) {
-      console.warn("⚠️ No token, trying refresh...");
       token = await refreshAccessToken();
     }
 
@@ -55,44 +63,37 @@ api.interceptors.request.use(
       if (config.headers instanceof AxiosHeaders) {
         config.headers.set('Authorization', `Bearer ${token}`);
       } else {
-        config.headers = new AxiosHeaders({ Authorization: `Bearer ${token}` });
+        config.headers = new AxiosHeaders({
+          Authorization: `Bearer ${token}`,
+        });
       }
-    } else {
-      console.warn("⚠️ No token attached to request");
     }
 
     return config;
   },
-  (error: AxiosError) => {
-    console.error("🚫 Request error:", error);
-    return Promise.reject(error);
-  }
+  (error: AxiosError) => Promise.reject(error)
 );
 
-// Response interceptor
+// Response interceptor to retry on 401
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-
       const newToken = await refreshAccessToken();
       if (newToken) {
         if (originalRequest.headers instanceof AxiosHeaders) {
           originalRequest.headers.set('Authorization', `Bearer ${newToken}`);
         } else {
-          originalRequest.headers = new AxiosHeaders({ Authorization: `Bearer ${newToken}` });
+          originalRequest.headers = new AxiosHeaders({
+            Authorization: `Bearer ${newToken}`,
+          });
         }
-
-        console.log("🔁 Retrying original request with refreshed token");
         return api(originalRequest);
       }
-
       store.dispatch(clearCredentials());
     }
-
     return Promise.reject(error);
   }
 );

@@ -7,7 +7,7 @@ import { useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { ArrowTopRightOnSquareIcon, ClockIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { Transition } from '@headlessui/react';
-import axios from 'axios';
+import api from '@/app/api/axios';
 import clsx from 'clsx';
 import { RootState } from '@/redux/store';
 
@@ -29,23 +29,16 @@ export default function CompletedJobsPage() {
 
   useEffect(() => {
     setIsClient(true);
+  }, []);
 
+  useEffect(() => {
     const fetchJobs = async () => {
-      if (!accessToken || accessToken.split('.').length !== 3) {
-        console.warn('No valid access token in Redux. Skipping API request.');
-        setLoading(false);
-        return;
-      }
-
+      setLoading(true);
       try {
-        const res = await axios.get('http://localhost:8000/users/me/completed-jobs', {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-
-        if (Array.isArray(res.data)) {
-          const normalized = res.data.map((job: any): Job => ({
+        const res = await api.get('/users/me/completed-jobs');
+        const data = res.data;
+        if (Array.isArray(data)) {
+          const normalized: Job[] = data.map((job: any) => ({
             orderId: job.orderId,
             userId: job.userId,
             createdAt: job.createdAt,
@@ -55,17 +48,22 @@ export default function CompletedJobsPage() {
           }));
           setJobs(normalized);
         } else {
-          console.error('Unexpected API response format:', res.data);
+          console.error('Unexpected API response format:', data);
           setJobs([]);
         }
       } catch (err) {
         console.error('Failed to fetch jobs:', err);
+        setJobs([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchJobs();
+    if (accessToken) {
+      fetchJobs();
+    } else {
+      setLoading(false);
+    }
   }, [accessToken]);
 
   return (
@@ -112,7 +110,9 @@ export default function CompletedJobsPage() {
                     <div
                       onClick={() =>
                         job.orderId &&
-                        router.push(`/dashboard/completed-jobs/order-details/${job.orderId}`)
+                        router.push(
+                          `/dashboard/completed-jobs/order-details/${job.orderId}`
+                        )
                       }
                       className={clsx(
                         'cursor-pointer bg-gradient-to-tr from-gray-800 to-gray-700 border border-gray-600 text-gray-200 p-5 shadow-lg rounded-lg flex flex-col md:flex-row md:justify-between md:items-center hover:border-amber-500 hover:shadow-amber-600/40 transition-all duration-300'
@@ -131,7 +131,9 @@ export default function CompletedJobsPage() {
 
                         <p className="text-sm mt-3">
                           <span className="font-medium text-gray-400">Analysis Type:</span>{' '}
-                          <span className="text-amber-500">{job.analysisType || 'N/A'}</span>
+                          <span className="text-amber-500">
+                            {job.analysisType || 'N/A'}
+                          </span>
                         </p>
                       </div>
 
@@ -174,3 +176,4 @@ export default function CompletedJobsPage() {
     </div>
   );
 }
+

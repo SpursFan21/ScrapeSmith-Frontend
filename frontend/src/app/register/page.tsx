@@ -1,8 +1,16 @@
 // src/app/register/page.tsx
+
+// src/app/register/page.tsx
 "use client";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (process.env.NODE_ENV === "development"
+    ? "http://localhost:8000"
+    : "https://api.yourproductiondomain.com");
 
 const Register: React.FC = () => {
   const router = useRouter();
@@ -23,14 +31,13 @@ const Register: React.FC = () => {
       setError("Email addresses do not match.");
       return;
     }
-
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
     try {
-      const res = await fetch("http://localhost:8000/auth/signup", {
+      const res = await fetch(`${API_BASE}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -41,7 +48,6 @@ const Register: React.FC = () => {
       });
 
       const data = await res.json();
-
       if (!res.ok) {
         setError(data.error || "Something went wrong");
       } else {
@@ -59,67 +65,30 @@ const Register: React.FC = () => {
           Create Your ScrapeSmith Account
         </h2>
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="block mb-1 text-white">Username</label>
-            <input
-              type="text"
-              placeholder="Username"
-              value={formData.username}
-              onChange={(e) =>
-                setFormData({ ...formData, username: e.target.value })
-              }
-              className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-          <div>
-            <label className="block mb-1 text-white">Email</label>
-            <input
-              type="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-          <div>
-            <label className="block mb-1 text-white">Confirm Email</label>
-            <input
-              type="email"
-              placeholder="Confirm Email"
-              value={formData.confirmEmail}
-              onChange={(e) =>
-                setFormData({ ...formData, confirmEmail: e.target.value })
-              }
-              className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-          <div>
-            <label className="block mb-1 text-white">Password</label>
-            <input
-              type="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
-              className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-          <div>
-            <label className="block mb-1 text-white">Confirm Password</label>
-            <input
-              type="password"
-              placeholder="Confirm Password"
-              value={formData.confirmPassword}
-              onChange={(e) =>
-                setFormData({ ...formData, confirmPassword: e.target.value })
-              }
-              className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
+          {[
+            { label: "Username", name: "username", type: "text" },
+            { label: "Email", name: "email", type: "email" },
+            { label: "Confirm Email", name: "confirmEmail", type: "email" },
+            { label: "Password", name: "password", type: "password" },
+            { label: "Confirm Password", name: "confirmPassword", type: "password" },
+          ].map(({ label, name, type }) => (
+            <div key={name}>
+              <label className="block mb-1 text-white">{label}</label>
+              <input
+                type={type}
+                placeholder={label}
+                value={(formData as any)[name]}
+                onChange={(e) =>
+                  setFormData({ ...formData, [name]: e.target.value })
+                }
+                className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                required
+              />
+            </div>
+          ))}
+
           {error && <p className="text-red-500 text-sm">{error}</p>}
+
           <button
             type="submit"
             className="w-full py-3 bg-amber-600 hover:bg-amber-700 transition-colors duration-200 rounded-lg font-semibold text-white"

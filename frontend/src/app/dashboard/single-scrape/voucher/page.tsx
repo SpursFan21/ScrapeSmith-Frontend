@@ -1,8 +1,9 @@
-//Frontend\frontend\src\app\dashboard\single-scrape\voucher\page.tsx
+//frontend\src\app\dashboard\single-scrape\voucher\page.tsx
+
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from '@/app/api/axios';
 import { useRouter } from "next/navigation";
 
 const VoucherPaymentPage: React.FC = () => {
@@ -21,7 +22,7 @@ const VoucherPaymentPage: React.FC = () => {
     setScrapeUrl(sessionStorage.getItem("scrapeUrl"));
     setAnalysisType(sessionStorage.getItem("analysisType"));
     setCustomScript(sessionStorage.getItem("customScript"));
-    setHasMounted(true); // ensure the page has mounted on client
+    setHasMounted(true);
   }, []);
 
   const handleVoucherSubmit = async (e: React.FormEvent) => {
@@ -33,40 +34,24 @@ const VoucherPaymentPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const accessToken = localStorage.getItem("accessToken");
 
-      const res = await axios.post(
-        "http://localhost:8000/payment/validate-voucher",
-        { code: voucherCode },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      const res = await api.post("/payment/validate-voucher", { code: voucherCode });
 
       if (res.data.valid) {
-        await axios.post(
-          "http://localhost:8000/scrape/single",
-          {
-            url: scrapeUrl,
-            analysis_type: analysisType,
-            custom_script: customScript,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
+        await api.post("/scrape/single", {
+          url: scrapeUrl,
+          analysis_type: analysisType,
+          custom_script: customScript,
+        });
 
-        // Clear sessionStorage after successful queue
         sessionStorage.removeItem("scrapeUrl");
         sessionStorage.removeItem("analysisType");
         sessionStorage.removeItem("customScript");
 
         setOrderSuccess(true);
-        setMessage("Voucher accepted! Your scrape job has been queued and is being processed.");
+        setMessage(
+          "Voucher accepted! Your scrape job has been queued and is being processed."
+        );
       } else {
         setMessage("Invalid voucher code.");
       }
@@ -82,7 +67,6 @@ const VoucherPaymentPage: React.FC = () => {
       <div className="w-full max-w-xl p-6 bg-gray-800 rounded-xl shadow-lg">
         <h2 className="text-3xl font-bold text-white mb-6">Voucher Payment</h2>
 
-        {/* Scrape Job Summary */}
         {hasMounted && (
           <div className="bg-gray-700 p-4 rounded-lg mb-6">
             <h3 className="text-lg text-amber-400 font-semibold">Your Scrape Job</h3>
@@ -95,9 +79,10 @@ const VoucherPaymentPage: React.FC = () => {
           </div>
         )}
 
-        {/* Voucher Input Form */}
         <form onSubmit={handleVoucherSubmit}>
-          <label className="block mb-2 text-gray-200 font-semibold">Enter Voucher Code</label>
+          <label className="block mb-2 text-gray-200 font-semibold">
+            Enter Voucher Code
+          </label>
           <input
             type="text"
             value={voucherCode}
@@ -115,7 +100,6 @@ const VoucherPaymentPage: React.FC = () => {
           </button>
         </form>
 
-        {/* Stripe Fallback Button */}
         <div className="mt-4 text-center">
           <p className="text-gray-400 mb-2">or</p>
           <button
@@ -126,12 +110,10 @@ const VoucherPaymentPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Status Message */}
         {message && (
           <p className="mt-4 text-center font-medium text-white">{message}</p>
         )}
 
-        {/* Success Redirect */}
         {orderSuccess && (
           <div className="mt-6 text-center">
             <button

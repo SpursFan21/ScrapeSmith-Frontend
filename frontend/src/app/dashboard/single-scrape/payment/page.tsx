@@ -1,8 +1,9 @@
-//Frontend\frontend\src\app\dashboard\single-scrape\payment\page.tsx
+//frontend\src\app\dashboard\single-scrape\payment\page.tsx
+
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from '@/app/api/axios';
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -53,8 +54,8 @@ const PaymentForm: React.FC = () => {
   const productId = "prod_S1CgJQ8HARLgRN";
 
   useEffect(() => {
-    axios
-      .get(`http://localhost:8000/payment/product/${productId}`)
+    api
+      .get<ProductDetails>(`/payment/product/${productId}`)
       .then((res) => setProduct(res.data))
       .catch((err) => console.error("Error loading product:", err));
 
@@ -68,11 +69,11 @@ const PaymentForm: React.FC = () => {
     if (!stripe || !elements || !scrapeUrl || !analysisType) return;
 
     try {
-      const paymentIntentRes = await axios.post(
-        `http://localhost:8000/payment/create-payment-intent/${productId}`
+      const { data } = await api.post<{ clientSecret: string }>(
+        `/payment/create-payment-intent/${productId}`
       );
 
-      const { clientSecret } = paymentIntentRes.data;
+      const { clientSecret } = data;
 
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
@@ -83,21 +84,20 @@ const PaymentForm: React.FC = () => {
       if (result.error) {
         setMessage(`Payment failed: ${result.error.message}`);
       } else if (result.paymentIntent?.status === "succeeded") {
-        setMessage("Payment successful! Your scrape job has been queued and is being processed.");
+        setMessage(
+          "Payment successful! Your scrape job has been queued and is being processed."
+        );
         setOrderSuccess(true);
 
-        const accessToken = localStorage.getItem("accessToken");
-        await axios.post(
-          "http://localhost:8000/scrape/single",
+        await api.post(
+          "/scrape/single",
           {
             url: scrapeUrl,
             analysis_type: analysisType,
             custom_script: customScript,
-          },
-          { headers: { Authorization: `Bearer ${accessToken}` } }
+          }
         );
 
-        // Clear sessionStorage after successful queue
         sessionStorage.removeItem("scrapeUrl");
         sessionStorage.removeItem("analysisType");
         sessionStorage.removeItem("customScript");
@@ -111,10 +111,14 @@ const PaymentForm: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-gray-900">
       <div className="w-full max-w-xl p-6 bg-gray-800 rounded-xl shadow-lg">
-        <h2 className="text-3xl font-bold text-white mb-6">Single Scrape Payment</h2>
+        <h2 className="text-3xl font-bold text-white mb-6">
+          Single Scrape Payment
+        </h2>
 
         <div className="bg-gray-700 p-4 rounded-lg mb-6">
-          <h3 className="text-lg text-amber-400 font-semibold">Your Scrape Job</h3>
+          <h3 className="text-lg text-amber-400 font-semibold">
+            Your Scrape Job
+          </h3>
           <p className="text-white mt-2">
             <strong>URL:</strong> {scrapeUrl || "N/A"}
           </p>
@@ -124,9 +128,11 @@ const PaymentForm: React.FC = () => {
         </div>
 
         {product ? (
-          <div>
+          <>
             <p className="text-xl text-white mb-2">{product.name}</p>
-            <p className="text-gray-400 mb-4">{product.description}</p>
+            <p className="text-gray-400 mb-4">
+              {product.description}
+            </p>
             <p className="text-lg text-amber-400 mb-4">
               Price: {product.price} {product.currency.toUpperCase()}
             </p>
@@ -144,19 +150,20 @@ const PaymentForm: React.FC = () => {
               </button>
             </form>
 
-            {/* Pay with Voucher Option */}
             <div className="mt-4 text-center">
               <p className="text-gray-400 mb-2">or</p>
               <button
                 onClick={() => router.push("/dashboard/single-scrape/voucher")}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-semibold transition"
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-semibold"
               >
                 Pay with Voucher
               </button>
             </div>
 
             {message && (
-              <p className="mt-4 text-center font-medium text-white">{message}</p>
+              <p className="mt-4 text-center font-medium text-white">
+                {message}
+              </p>
             )}
 
             {orderSuccess && (
@@ -171,10 +178,10 @@ const PaymentForm: React.FC = () => {
             )}
 
             <p className="text-gray-500 text-sm text-center mt-4">
-              Payments securely processed by{" "}
+              Payments securely processed by{' '}
               <span className="text-amber-500">Stripe</span>.
             </p>
-          </div>
+          </>
         ) : (
           <p className="text-gray-300">Loading product details...</p>
         )}

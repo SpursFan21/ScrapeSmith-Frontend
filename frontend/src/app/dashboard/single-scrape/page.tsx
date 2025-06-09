@@ -1,4 +1,5 @@
-// Frontend\frontend\src\app\dashboard\single-scrape\page.tsx
+//frontend\src\app\dashboard\single-scrape\page.tsx
+
 "use client";
 
 import React, { useState, useEffect, Fragment } from "react";

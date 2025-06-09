@@ -2,6 +2,8 @@
 
 "use client";
 
+export const dynamic = 'force-dynamic'; //Tells Next not to statically prerender it on the server at all.
+
 import React, { useState, useEffect, Fragment } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { useRouter } from "next/navigation";
@@ -112,7 +114,7 @@ const JobSchedulerPage: React.FC = () => {
       const paymentResponse = await api.post("/payment/schedule", { amount: jobCount });
       if (paymentResponse.status < 200 || paymentResponse.status >= 300) {
         toast.error("Payment processing failed.");
-        setLoading(false); // This is important to avoid freezing the UIi
+        setLoading(false); // This is important to avoid freezing the UI
         return;
       }
 

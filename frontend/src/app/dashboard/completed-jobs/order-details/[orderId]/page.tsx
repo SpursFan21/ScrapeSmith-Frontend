@@ -1,11 +1,11 @@
-//Frontend\frontend\src\app\dashboard\completed-jobs\order-details\[orderId]\page.tsx
+//frontend\src\app\dashboard\completed-jobs\order-details\[orderId]\page.tsx
 
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Switch } from '@headlessui/react';
-import axios from 'axios';
+import api from '@/app/api/axios';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 
@@ -25,7 +25,7 @@ export default function OrderDetailsPage() {
   const [aiAnalysis, setAiAnalysis] = useState<string>('');
   const [view, setView] = useState<'raw' | 'clean' | 'ai'>('raw');
   const [loading, setLoading] = useState(true);
-  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+  const accessToken = useSelector((s: RootState) => s.auth.accessToken);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -33,10 +33,7 @@ export default function OrderDetailsPage() {
     const fetchFullOrder = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`http://localhost:8000/users/order-details/${orderId}`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-
+        const res = await api.get(`/users/order-details/${orderId}`);
         const { order, raw_data, clean_data, ai_analysis } = res.data;
 
         setOrderData(order);
@@ -70,12 +67,34 @@ export default function OrderDetailsPage() {
           ) : orderData && (
             <>
               <h1 className="text-3xl font-bold text-amber-500 mb-4">Order Details</h1>
-              <p><span className="font-semibold text-gray-400">Order ID:</span> {orderData.order_id}</p>
-              <p><span className="font-semibold text-gray-400">Created At:</span> {new Date(orderData.created_at).toLocaleString()}</p>
-              <p><span className="font-semibold text-gray-400">URL:</span> <a href={orderData.url} className="text-amber-400 hover:underline">{orderData.url}</a></p>
-              <p><span className="font-semibold text-gray-400">Analysis Type:</span> {orderData.analysis_type}</p>
+              <p>
+                <span className="font-semibold text-gray-400">Order ID:</span>{' '}
+                {orderData.order_id}
+              </p>
+              <p>
+                <span className="font-semibold text-gray-400">Created At:</span>{' '}
+                {new Date(orderData.created_at).toLocaleString()}
+              </p>
+              <p>
+                <span className="font-semibold text-gray-400">URL:</span>{' '}
+                <a
+                  href={orderData.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-amber-400 hover:underline"
+                >
+                  {orderData.url}
+                </a>
+              </p>
+              <p>
+                <span className="font-semibold text-gray-400">Analysis Type:</span>{' '}
+                {orderData.analysis_type}
+              </p>
               {orderData.custom_script && (
-                <p><span className="font-semibold text-gray-400">Custom Script:</span> {orderData.custom_script}</p>
+                <p>
+                  <span className="font-semibold text-gray-400">Custom Script:</span>{' '}
+                  {orderData.custom_script}
+                </p>
               )}
             </>
           )}
@@ -83,11 +102,11 @@ export default function OrderDetailsPage() {
 
         {/* Toggle Switches */}
         <div className="flex justify-center space-x-4 mb-6">
-          {['raw', 'clean', 'ai'].map((type) => (
+          {(['raw', 'clean', 'ai'] as const).map(type => (
             <div key={type} className="flex items-center">
               <Switch
                 checked={view === type}
-                onChange={() => setView(type as 'raw' | 'clean' | 'ai')}
+                onChange={() => setView(type)}
                 className={`${
                   view === type ? 'bg-amber-600' : 'bg-gray-700'
                 } relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
@@ -108,8 +127,11 @@ export default function OrderDetailsPage() {
         <div className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 min-h-[300px]">
           {loading ? (
             <div className="space-y-4">
-              {[...Array(8)].map((_, idx) => (
-                <div key={idx} className="h-4 w-full bg-gray-700 animate-pulse rounded" />
+              {Array.from({ length: 8 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="h-4 w-full bg-gray-700 animate-pulse rounded"
+                />
               ))}
             </div>
           ) : view === 'raw' ? (
