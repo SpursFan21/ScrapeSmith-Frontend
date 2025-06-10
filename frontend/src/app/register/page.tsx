@@ -10,7 +10,7 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   (process.env.NODE_ENV === "development"
     ? "http://localhost:8000"
-    : "https://api.yourproductiondomain.com");
+    : "https://d17tfod34gawxo.cloudfront.net");
 
 const Register: React.FC = () => {
   const router = useRouter();
